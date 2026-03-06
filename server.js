@@ -91,6 +91,85 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // /api/rofex — scrape IOL futuros page for DLR contracts
+  if (req.url === '/api/rofex') {
+    try {
+      const html = await proxyFetch('https://iol.invertironline.com/mercado/cotizaciones/argentina/futuros/todos');
+      const map = {};
+      const parseAR = (s) => s ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : 0;
+      const trRegex = /<tr[^>]*data-tituloID[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+      while ((trMatch = trRegex.exec(html)) !== null) {
+        const tr = trMatch[1];
+        const symMatch = tr.match(/data-symbol="([^"]+)"/);
+        if (!symMatch) continue;
+        const symbol = symMatch[1].trim();
+        // Only DLR (dólar) futures
+        if (!symbol.startsWith('DLR')) continue;
+        const lastMatch = tr.match(/data-field="UltimoPrecio"[^>]*>\s*([\d.,]+)/);
+        const prevMatch = tr.match(/data-field="UltimoCierre"[^>]*>\s*([\d.,]+)/);
+        // Try to extract bid/ask/vol/oi from table cells
+        const bidMatch = tr.match(/data-field="PrecioCompra"[^>]*>\s*([\d.,]+)/);
+        const askMatch = tr.match(/data-field="PrecioVenta"[^>]*>\s*([\d.,]+)/);
+        const volMatch = tr.match(/data-field="VolumenMonto"[^>]*>\s*([\d.,]+)/) || tr.match(/data-field="VolumenNominal"[^>]*>\s*([\d.,]+)/);
+        const oiMatch = tr.match(/data-field="InteresAbierto"[^>]*>\s*([\d.,]+)/);
+        map[symbol] = {
+          last: parseAR(lastMatch?.[1]),
+          prevClose: parseAR(prevMatch?.[1]),
+          bid: parseAR(bidMatch?.[1]),
+          ask: parseAR(askMatch?.[1]),
+          vol: parseAR(volMatch?.[1]),
+          oi: parseAR(oiMatch?.[1])
+        };
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ count: Object.keys(map).length, data: map }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // /api/dolar-spot — TC mayorista BCRA
+  if (req.url === '/api/dolar-spot') {
+    try {
+      // Try BCRA API first
+      const data = await proxyFetch('https://api.bcra.gob.ar/estadisticascambiarias/v1.0/Cotizaciones');
+      const json = JSON.parse(data);
+      let mayorista = 0;
+      let fecha = '';
+      if (json && json.results && json.results.length > 0) {
+        const last = json.results[json.results.length - 1];
+        fecha = last.fecha || '';
+        // Look for mayorista in detalle
+        if (last.detalle) {
+          for (const d of last.detalle) {
+            if (d.descripcion && d.descripcion.toLowerCase().includes('mayorista')) {
+              mayorista = d.valor_venta || d.valor_compra || 0;
+              break;
+            }
+          }
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ mayorista, fecha }));
+    } catch (e) {
+      // Fallback: try ambito
+      try {
+        const html = await proxyFetch('https://www.ambito.com/contenidos/dolar-mayorista.html');
+        const match = html.match(/(\d+[.,]\d+)\s*<\/span>/);
+        const val = match ? parseFloat(match[1].replace(',', '.')) : 0;
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ mayorista: val, fecha: new Date().toISOString().slice(0,10), source: 'ambito' }));
+      } catch (e2) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ mayorista: 0, fecha: '', error: e2.message }));
+      }
+    }
+    return;
+  }
+
   // Generic proxy for any URL
   if (req.url.startsWith('/api/proxy?')) {
     try {

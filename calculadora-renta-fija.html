@@ -18,7 +18,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .header-right a{color:#fff;text-decoration:none;font-size:.75rem;opacity:.85;padding:.3rem .6rem;border:1px solid rgba(255,255,255,.3);border-radius:4px}
 .clock{font-size:.75rem;opacity:.9;font-variant-numeric:tabular-nums}
 .tab-bar{display:flex;gap:0;padding:.75rem .75rem 0;max-width:100%}
-.tab-btn{padding:.5rem 1.5rem;font-size:.85rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;transition:all .15s;font-family:inherit;position:relative;bottom:-1px}
+.tab-btn{padding:.4rem .8rem;font-size:.75rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;transition:all .15s;font-family:inherit;position:relative;bottom:-1px}
 .tab-btn.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow);z-index:1}
 .tab-btn:not(.active){background:var(--primary-light);color:rgba(255,255,255,.85)}
 .tab-btn:not(.active):hover{background:var(--primary);color:#fff}
@@ -275,9 +275,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 </div>
 
-<div class="tab-bar">
+<div class="tab-bar" style="flex-wrap:wrap">
 <button class="tab-btn active" onclick="switchTab('USD')" id="tabBtnUSD">Bonos USD <span class="tab-count" id="countUSD"></span></button>
 <button class="tab-btn" onclick="switchTab('ARS')" id="tabBtnARS">Bonos Pesos <span class="tab-count" id="countARS"></span></button>
+<button class="tab-btn" onclick="switchTab('PROV')" id="tabBtnPROV">Provinciales <span class="tab-count" id="countPROV"></span></button>
+<button class="tab-btn" onclick="switchTab('CORP')" id="tabBtnCORP">Corp USD <span class="tab-count" id="countCORP"></span></button>
+<button class="tab-btn" onclick="switchTab('CORPLINK')" id="tabBtnCORPLINK">Corp USD Linked <span class="tab-count" id="countCORPLINK"></span></button>
+<button class="tab-btn" onclick="switchTab('CORPTAMAR')" id="tabBtnCORPTAMAR">Corp Tamar <span class="tab-count" id="countCORPTAMAR"></span></button>
+<button class="tab-btn" onclick="switchTab('ROFEX')" id="tabBtnROFEX">Rofex USD <span class="tab-count" id="countROFEX"></span></button>
 </div>
 <div class="tab-content">
 <!-- TAB 1: Bonos USD -->
@@ -317,6 +322,131 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </select>
 </div>
 <div id="chartsARS"></div>
+</div>
+</div>
+</div>
+<!-- TAB 3: Bonos Provinciales USD -->
+<div class="tab-pane" id="panePROV">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="panel-body"><table id="tblPROV"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricPROV" onchange="updateYieldCharts('PROV')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsPROV"></div>
+</div>
+</div>
+</div>
+<!-- TAB 4: Corporativos USD -->
+<div class="tab-pane" id="paneCORP">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+<label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
+<select id="filterCorpEmisor" onchange="applyCorpFilter('CORP')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
+<select id="filterCorpSector" onchange="applyCorpFilter('CORP')" style="font-size:.65rem;padding:2px 4px"><option value="">Sector: Todos</option></select>
+<select id="filterCorpLeg" onchange="applyCorpFilter('CORP')" style="font-size:.65rem;padding:2px 4px"><option value="">Legislación: Todas</option></select>
+<select id="filterCorpRating" onchange="applyCorpFilter('CORP')" style="font-size:.65rem;padding:2px 4px"><option value="">Rating: Todos</option></select>
+</div>
+<div class="panel-body"><table id="tblCORP"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricCORP" onchange="updateYieldCharts('CORP')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsCORP"></div>
+</div>
+</div>
+</div>
+<!-- TAB 5: Corporativos USD Linked -->
+<div class="tab-pane" id="paneCORPLINK">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+<label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
+<select id="filterCorpLinkEmisor" onchange="applyCorpFilter('CORPLINK')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
+<select id="filterCorpLinkSector" onchange="applyCorpFilter('CORPLINK')" style="font-size:.65rem;padding:2px 4px"><option value="">Sector: Todos</option></select>
+<select id="filterCorpLinkLeg" onchange="applyCorpFilter('CORPLINK')" style="font-size:.65rem;padding:2px 4px"><option value="">Legislación: Todas</option></select>
+<select id="filterCorpLinkRating" onchange="applyCorpFilter('CORPLINK')" style="font-size:.65rem;padding:2px 4px"><option value="">Rating: Todos</option></select>
+</div>
+<div class="panel-body"><table id="tblCORPLINK"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricCORPLINK" onchange="updateYieldCharts('CORPLINK')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsCORPLINK"></div>
+</div>
+</div>
+</div>
+<!-- TAB 6: Corporativos Tamar -->
+<div class="tab-pane" id="paneCORPTAMAR">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+<label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
+<select id="filterCorpTamarEmisor" onchange="applyCorpFilter('CORPTAMAR')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
+<select id="filterCorpTamarSector" onchange="applyCorpFilter('CORPTAMAR')" style="font-size:.65rem;padding:2px 4px"><option value="">Sector: Todos</option></select>
+<select id="filterCorpTamarLeg" onchange="applyCorpFilter('CORPTAMAR')" style="font-size:.65rem;padding:2px 4px"><option value="">Legislación: Todas</option></select>
+<select id="filterCorpTamarRating" onchange="applyCorpFilter('CORPTAMAR')" style="font-size:.65rem;padding:2px 4px"><option value="">Rating: Todos</option></select>
+</div>
+<div class="panel-body"><table id="tblCORPTAMAR"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricCORPTAMAR" onchange="updateYieldCharts('CORPTAMAR')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsCORPTAMAR"></div>
+</div>
+</div>
+</div>
+<!-- TAB 7: Rofex Futuros USD -->
+<div class="tab-pane" id="paneROFEX">
+<div class="tab-pane-grid">
+<div class="panel">
+<div style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">TC Spot Mayorista:</label>
+<input type="number" id="spotInput" step="0.01" style="width:100px;font-size:.72rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px" onchange="onSpotChange()" placeholder="ej: 1075.50">
+<span id="spotStatus" style="font-size:.6rem;color:var(--text-light)"></span>
+<button onclick="fetchSpot()" style="font-size:.6rem;padding:2px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--card)">Actualizar Spot</button>
+</div>
+<div class="panel-body"><table id="tblROFEX"><thead><tr>
+<th style="text-align:left">Posición</th><th style="text-align:left">Ticker</th><th>Último</th><th>Bid</th><th>Ask</th>
+<th>OI</th><th>Vol</th><th>Días</th><th>Basis</th><th>TNA</th><th>TEA</th><th>TEM</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Curva Futuros</span>
+</div>
+<div id="chartsROFEX"></div>
 </div>
 </div>
 </div>
@@ -606,6 +736,245 @@ const BOPREALES = {
     residualAt: function(){return 100}
   }
 };
+
+// =====================================================
+// BONOS PROVINCIALES USD
+// =====================================================
+const PROVINCIAL_BONDS = {
+  // Buenos Aires
+  BA37D: {
+    ticker:'BA37D', name:'Buenos Aires 2037 6.625%', law:'New York', currency:'USD',
+    couponRate:6.625, frequency:2, maturity:'2037-09-01',
+    firstCoupon:'2025-03-01', issueDate:'2024-09-01',
+    province:'Buenos Aires',
+    amortSchedule: [{date:'2037-09-01',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2025-03-01','2037-09-01',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BB37D: {
+    ticker:'BB37D', name:'Buenos Aires 2037 5.50%', law:'New York', currency:'USD',
+    couponRate:5.50, frequency:2, maturity:'2037-09-01',
+    firstCoupon:'2026-03-01', issueDate:'2025-09-01',
+    province:'Buenos Aires',
+    amortSchedule: [{date:'2037-09-01',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2026-03-01','2037-09-01',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  PBJ27: {
+    ticker:'PBJ27', name:'Buenos Aires 2027 7.875%', law:'New York', currency:'USD',
+    couponRate:7.875, frequency:2, maturity:'2027-06-15',
+    firstCoupon:'2018-12-15', issueDate:'2017-06-15',
+    province:'Buenos Aires',
+    amortSchedule: generateEqualAmort('2025-06-15','2027-06-15',2),
+    couponDates: function(from){return generateSemiannualDates('2018-12-15','2027-06-15',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // CABA
+  BDC27: {
+    ticker:'BDC27', name:'CABA 2027 7.50%', law:'New York', currency:'USD',
+    couponRate:7.50, frequency:2, maturity:'2027-06-01',
+    firstCoupon:'2022-12-01', issueDate:'2022-06-01',
+    province:'CABA',
+    amortSchedule: [{date:'2025-12-01',pct:33.33},{date:'2026-06-01',pct:33.33},{date:'2027-06-01',pct:33.34}],
+    couponDates: function(from){return generateSemiannualDates('2022-12-01','2027-06-01',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Córdoba
+  CO26D: {
+    ticker:'CO26D', name:'Córdoba 2026 7.125%', law:'New York', currency:'USD',
+    couponRate:7.125, frequency:2, maturity:'2026-06-01',
+    firstCoupon:'2017-12-01', issueDate:'2017-06-01',
+    province:'Córdoba',
+    amortSchedule: [{date:'2026-06-01',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2017-12-01','2026-06-01',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  CO29: {
+    ticker:'CO29', name:'Córdoba 2029 6.875%', law:'New York', currency:'USD',
+    couponRate:6.875, frequency:2, maturity:'2029-02-15',
+    firstCoupon:'2022-08-15', issueDate:'2022-02-15',
+    province:'Córdoba',
+    amortSchedule: generateEqualAmort('2027-02-15','2029-02-15',2),
+    couponDates: function(from){return generateSemiannualDates('2022-08-15','2029-02-15',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Santa Fe
+  SF27D: {
+    ticker:'SF27D', name:'Santa Fe 2027 6.90%', law:'New York', currency:'USD',
+    couponRate:6.90, frequency:2, maturity:'2027-11-01',
+    firstCoupon:'2018-05-01', issueDate:'2017-11-01',
+    province:'Santa Fe',
+    amortSchedule: generateEqualAmort('2025-11-01','2027-11-01',2),
+    couponDates: function(from){return generateSemiannualDates('2018-05-01','2027-11-01',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Mendoza
+  PMM29: {
+    ticker:'PMM29', name:'Mendoza 2029 5.75%', law:'New York', currency:'USD',
+    couponRate:5.75, frequency:2, maturity:'2029-01-15',
+    firstCoupon:'2024-07-15', issueDate:'2024-01-15',
+    province:'Mendoza',
+    amortSchedule: generateEqualAmort('2027-01-15','2029-01-15',2),
+    couponDates: function(from){return generateSemiannualDates('2024-07-15','2029-01-15',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Neuquén
+  NDT25: {
+    ticker:'NDT25', name:'Neuquén 2025 6.875%', law:'New York', currency:'USD',
+    couponRate:6.875, frequency:2, maturity:'2025-05-12',
+    firstCoupon:'2019-11-12', issueDate:'2019-05-12',
+    province:'Neuquén',
+    amortSchedule: [{date:'2025-05-12',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2019-11-12','2025-05-12',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Chubut
+  CHUT30: {
+    ticker:'CHUT30', name:'Chubut 2030 7.75%', law:'New York', currency:'USD',
+    couponRate:7.75, frequency:2, maturity:'2030-07-26',
+    firstCoupon:'2018-01-26', issueDate:'2017-07-26',
+    province:'Chubut',
+    amortSchedule: generateEqualAmort('2026-07-26','2030-07-26',2),
+    couponDates: function(from){return generateSemiannualDates('2018-01-26','2030-07-26',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Entre Ríos
+  ERF25: {
+    ticker:'ERF25', name:'Entre Ríos 2025 8.25%', law:'New York', currency:'USD',
+    couponRate:8.25, frequency:2, maturity:'2025-02-08',
+    firstCoupon:'2017-08-08', issueDate:'2017-02-08',
+    province:'Entre Ríos',
+    amortSchedule: [{date:'2025-02-08',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2017-08-08','2025-02-08',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Tierra del Fuego
+  TFU27: {
+    ticker:'TFU27', name:'Tierra del Fuego 2027 8.95%', law:'Argentina', currency:'USD',
+    couponRate:8.95, frequency:2, maturity:'2027-10-17',
+    firstCoupon:'2020-04-17', issueDate:'2019-10-17',
+    province:'Tierra del Fuego',
+    amortSchedule: generateEqualAmort('2025-10-17','2027-10-17',2),
+    couponDates: function(from){return generateSemiannualDates('2020-04-17','2027-10-17',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Salta
+  SA24D: {
+    ticker:'SA24D', name:'Salta 2027 9.125%', law:'New York', currency:'USD',
+    couponRate:9.125, frequency:2, maturity:'2027-06-15',
+    firstCoupon:'2024-12-15', issueDate:'2024-06-15',
+    province:'Salta',
+    amortSchedule: generateEqualAmort('2026-06-15','2027-06-15',2),
+    couponDates: function(from){return generateSemiannualDates('2024-12-15','2027-06-15',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  // Río Negro
+  RND25: {
+    ticker:'RND25', name:'Río Negro 2025 6.875%', law:'New York', currency:'USD',
+    couponRate:6.875, frequency:2, maturity:'2025-09-30',
+    firstCoupon:'2018-03-30', issueDate:'2017-09-30',
+    province:'Río Negro',
+    amortSchedule: [{date:'2025-09-30',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2018-03-30','2025-09-30',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  }
+};
+
+// BOND_META for provinciales is added after BOND_META definition below
+
+// =====================================================
+// BONOS CORPORATIVOS USD - Obligaciones Negociables (Ley NY/Local, hard dollar)
+// =====================================================
+const CORP_BONDS_USD = {
+  YMCHO:{ticker:'YMCHO',name:'YPF 2029 8.50%',law:'New York',currency:'USD',couponRate:8.50,frequency:2,maturity:'2029-07-28',firstCoupon:'2022-01-28',issueDate:'2021-07-28',issuer:'YPF',sector:'Energía',rating:'Ca/CCC+',
+    amortSchedule:[{date:'2029-07-28',pct:100}],couponDates:function(from){return generateSemiannualDates('2022-01-28','2029-07-28',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  YMCJO:{ticker:'YMCJO',name:'YPF 2031 9.00%',law:'New York',currency:'USD',couponRate:9.00,frequency:2,maturity:'2031-01-28',firstCoupon:'2024-07-28',issueDate:'2024-01-28',issuer:'YPF',sector:'Energía',rating:'',
+    amortSchedule:[{date:'2031-01-28',pct:100}],couponDates:function(from){return generateSemiannualDates('2024-07-28','2031-01-28',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  YMCUO:{ticker:'YMCUO',name:'YPF 2033 8.75%',law:'New York',currency:'USD',couponRate:8.75,frequency:2,maturity:'2033-04-04',firstCoupon:'2025-10-04',issueDate:'2025-04-04',issuer:'YPF',sector:'Energía',rating:'',
+    amortSchedule:[{date:'2033-04-04',pct:100}],couponDates:function(from){return generateSemiannualDates('2025-10-04','2033-04-04',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  MGCHO:{ticker:'MGCHO',name:'Pampa 2027 7.50%',law:'New York',currency:'USD',couponRate:7.50,frequency:2,maturity:'2027-01-24',firstCoupon:'2020-07-24',issueDate:'2020-01-24',issuer:'Pampa Energía',sector:'Energía',rating:'Ca/CCC',
+    amortSchedule:[{date:'2027-01-24',pct:100}],couponDates:function(from){return generateSemiannualDates('2020-07-24','2027-01-24',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  MGCJO:{ticker:'MGCJO',name:'Pampa 2031 9.125%',law:'New York',currency:'USD',couponRate:9.125,frequency:2,maturity:'2031-04-15',firstCoupon:'2024-10-15',issueDate:'2024-04-15',issuer:'Pampa Energía',sector:'Energía',rating:'',
+    amortSchedule:[{date:'2031-04-15',pct:100}],couponDates:function(from){return generateSemiannualDates('2024-10-15','2031-04-15',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  PNCPO:{ticker:'PNCPO',name:'PAE 2027 7.875%',law:'New York',currency:'USD',couponRate:7.875,frequency:2,maturity:'2027-05-06',firstCoupon:'2021-11-06',issueDate:'2021-05-06',issuer:'Pan American Energy',sector:'Energía',rating:'B-',
+    amortSchedule:[{date:'2027-05-06',pct:100}],couponDates:function(from){return generateSemiannualDates('2021-11-06','2027-05-06',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  PNCQO:{ticker:'PNCQO',name:'PAE 2032 8.50%',law:'New York',currency:'USD',couponRate:8.50,frequency:2,maturity:'2032-04-30',firstCoupon:'2025-10-30',issueDate:'2025-04-30',issuer:'Pan American Energy',sector:'Energía',rating:'',
+    amortSchedule:[{date:'2032-04-30',pct:100}],couponDates:function(from){return generateSemiannualDates('2025-10-30','2032-04-30',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  TLCMO:{ticker:'TLCMO',name:'Telecom 2026 8.00%',law:'New York',currency:'USD',couponRate:8.00,frequency:2,maturity:'2026-07-18',firstCoupon:'2019-01-18',issueDate:'2018-07-18',issuer:'Telecom Argentina',sector:'Telecomunicaciones',rating:'Ca/CCC',
+    amortSchedule:[{date:'2026-07-18',pct:100}],couponDates:function(from){return generateSemiannualDates('2019-01-18','2026-07-18',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  IRCFO:{ticker:'IRCFO',name:'IRSA 2028 8.75%',law:'New York',currency:'USD',couponRate:8.75,frequency:2,maturity:'2028-03-01',firstCoupon:'2023-09-01',issueDate:'2023-03-01',issuer:'IRSA',sector:'Real Estate',rating:'',
+    amortSchedule:[{date:'2028-03-01',pct:100}],couponDates:function(from){return generateSemiannualDates('2023-09-01','2028-03-01',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  ARC1O:{ticker:'ARC1O',name:'AA2000 2027 8.50%',law:'New York',currency:'USD',couponRate:8.50,frequency:2,maturity:'2027-08-01',firstCoupon:'2021-02-01',issueDate:'2020-08-01',issuer:'Aeropuertos Arg 2000',sector:'Infraestructura',rating:'Ca/CCC',
+    amortSchedule:[{date:'2027-08-01',pct:100}],couponDates:function(from){return generateSemiannualDates('2021-02-01','2027-08-01',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  RCCJO:{ticker:'RCCJO',name:'Arcor 2027 6.00%',law:'New York',currency:'USD',couponRate:6.00,frequency:2,maturity:'2027-07-06',firstCoupon:'2022-01-06',issueDate:'2021-07-06',issuer:'Arcor',sector:'Alimentos',rating:'B-',
+    amortSchedule:[{date:'2027-07-06',pct:100}],couponDates:function(from){return generateSemiannualDates('2022-01-06','2027-07-06',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  GNCXO:{ticker:'GNCXO',name:'Genneia 2027 8.75%',law:'New York',currency:'USD',couponRate:8.75,frequency:2,maturity:'2027-01-20',firstCoupon:'2022-07-20',issueDate:'2022-01-20',issuer:'Genneia',sector:'Energía Renovable',rating:'CCC+',
+    amortSchedule:generateEqualAmort('2025-07-20','2027-01-20',2),couponDates:function(from){return generateSemiannualDates('2022-07-20','2027-01-20',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  NPCAO:{ticker:'NPCAO',name:'Central Puerto 2026 5.75%',law:'New York',currency:'USD',couponRate:5.75,frequency:2,maturity:'2026-10-21',firstCoupon:'2022-04-21',issueDate:'2021-10-21',issuer:'Central Puerto',sector:'Energía',rating:'',
+    amortSchedule:[{date:'2026-10-21',pct:100}],couponDates:function(from){return generateSemiannualDates('2022-04-21','2026-10-21',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  MSCFO:{ticker:'MSCFO',name:'MSU Energy 2030 6.875%',law:'New York',currency:'USD',couponRate:6.875,frequency:2,maturity:'2030-02-01',firstCoupon:'2025-08-01',issueDate:'2025-02-01',issuer:'MSU Energy',sector:'Energía',rating:'CCC+',
+    amortSchedule:[{date:'2030-02-01',pct:100}],couponDates:function(from){return generateSemiannualDates('2025-08-01','2030-02-01',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  VSCTO:{ticker:'VSCTO',name:'Vista Energy 2028 7.625%',law:'New York',currency:'USD',couponRate:7.625,frequency:2,maturity:'2028-06-01',firstCoupon:'2023-12-01',issueDate:'2023-06-01',issuer:'Vista Energy',sector:'Energía',rating:'B',
+    amortSchedule:[{date:'2028-06-01',pct:100}],couponDates:function(from){return generateSemiannualDates('2023-12-01','2028-06-01',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  BYCHO:{ticker:'BYCHO',name:'Galicia 2026 7.50%',law:'New York',currency:'USD',couponRate:7.50,frequency:2,maturity:'2026-07-19',firstCoupon:'2022-01-19',issueDate:'2021-07-19',issuer:'Banco Galicia',sector:'Financiero',rating:'CCC',
+    amortSchedule:[{date:'2026-07-19',pct:100}],couponDates:function(from){return generateSemiannualDates('2022-01-19','2026-07-19',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}},
+  BMCAO:{ticker:'BMCAO',name:'Banco Macro 2026 6.50%',law:'New York',currency:'USD',couponRate:6.50,frequency:2,maturity:'2026-11-04',firstCoupon:'2022-05-04',issueDate:'2021-11-04',issuer:'Banco Macro',sector:'Financiero',rating:'CCC',
+    amortSchedule:[{date:'2026-11-04',pct:100}],couponDates:function(from){return generateSemiannualDates('2022-05-04','2026-11-04',from)},residualAt:function(d){return calcResidual(this.amortSchedule,d)}}
+};
+
+// BOND_META for corporativos USD is added after BOND_META definition below
+
+// =====================================================
+// BONOS CORPORATIVOS USD LINKED - ON pagaderas en ARS ajustadas por TC
+// =====================================================
+const CORP_BONDS_USDLINKED = [
+  {ticker:'YMCXD',name:'YPF DL 2026',maturity:'2026-04-30',price:0,vf:100,issuer:'YPF',sector:'Energía',legislation:'Local',rating:''},
+  {ticker:'MGC3D',name:'Pampa DL 2026',maturity:'2026-06-15',price:0,vf:100,issuer:'Pampa Energía',sector:'Energía',legislation:'Local',rating:''},
+  {ticker:'IRCPD',name:'IRSA DL 2026',maturity:'2026-09-15',price:0,vf:100,issuer:'IRSA',sector:'Real Estate',legislation:'Local',rating:''},
+  {ticker:'NPCBD',name:'Central Puerto DL 2026',maturity:'2026-08-12',price:0,vf:100,issuer:'Central Puerto',sector:'Energía',legislation:'Local',rating:''},
+  {ticker:'TLC5D',name:'Telecom DL 2026',maturity:'2026-08-07',price:0,vf:100,issuer:'Telecom Argentina',sector:'Telecomunicaciones',legislation:'Local',rating:''}
+];
+
+// =====================================================
+// BONOS CORPORATIVOS TAMAR - ON pagaderas en ARS a tasa Badlar/Tamar
+// =====================================================
+const CORP_BONDS_TAMAR = [
+  {ticker:'YMCVP',name:'YPF Tamar 2026',maturity:'2026-05-15',price:0,vf:100,tem:0.027,issuer:'YPF',sector:'Energía',legislation:'Local',rating:''},
+  {ticker:'MGC4P',name:'Pampa Tamar 2026',maturity:'2026-07-20',price:0,vf:100,tem:0.027,issuer:'Pampa Energía',sector:'Energía',legislation:'Local',rating:''},
+  {ticker:'BYC2P',name:'Galicia Badlar 2026',maturity:'2026-04-20',price:0,vf:100,tem:0.027,issuer:'Banco Galicia',sector:'Financiero',legislation:'Local',rating:''},
+  {ticker:'BMC3P',name:'Banco Macro Badlar 2026',maturity:'2026-06-15',price:0,vf:100,tem:0.027,issuer:'Banco Macro',sector:'Financiero',legislation:'Local',rating:''},
+  {ticker:'IRC1P',name:'IRSA Badlar 2026',maturity:'2026-09-10',price:0,vf:100,tem:0.027,issuer:'IRSA',sector:'Real Estate',legislation:'Local',rating:''},
+  {ticker:'CS31P',name:'Cresud Badlar 2026',maturity:'2026-05-28',price:0,vf:100,tem:0.027,issuer:'Cresud',sector:'Agropecuario',legislation:'Local',rating:''}
+];
+
+// =====================================================
+// ROFEX - Futuros USD Mayorista (DLR)
+// Vencimientos: último día hábil de cada mes
+// =====================================================
+function lastBusinessDay(year,month){
+  let d=new Date(year,month+1,0);
+  while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()-1);
+  return formatDate(d);
+}
+const ROFEX_CONTRACTS = [
+  {ticker:'DLRMAR26',position:'Mar-26',maturity:lastBusinessDay(2026,2),iolSymbol:'DLR/MAR26'},
+  {ticker:'DLRABR26',position:'Abr-26',maturity:lastBusinessDay(2026,3),iolSymbol:'DLR/ABR26'},
+  {ticker:'DLRMAY26',position:'May-26',maturity:lastBusinessDay(2026,4),iolSymbol:'DLR/MAY26'},
+  {ticker:'DLRJUN26',position:'Jun-26',maturity:lastBusinessDay(2026,5),iolSymbol:'DLR/JUN26'},
+  {ticker:'DLRJUL26',position:'Jul-26',maturity:lastBusinessDay(2026,6),iolSymbol:'DLR/JUL26'},
+  {ticker:'DLRAGO26',position:'Ago-26',maturity:lastBusinessDay(2026,7),iolSymbol:'DLR/AGO26'},
+  {ticker:'DLRSEP26',position:'Sep-26',maturity:lastBusinessDay(2026,8),iolSymbol:'DLR/SEP26'},
+  {ticker:'DLROCT26',position:'Oct-26',maturity:lastBusinessDay(2026,9),iolSymbol:'DLR/OCT26'},
+  {ticker:'DLRNOV26',position:'Nov-26',maturity:lastBusinessDay(2026,10),iolSymbol:'DLR/NOV26'},
+  {ticker:'DLRDIC26',position:'Dic-26',maturity:lastBusinessDay(2026,11),iolSymbol:'DLR/DIC26'},
+  {ticker:'DLRENE27',position:'Ene-27',maturity:lastBusinessDay(2027,0),iolSymbol:'DLR/ENE27'},
+  {ticker:'DLRFEB27',position:'Feb-27',maturity:lastBusinessDay(2027,1),iolSymbol:'DLR/FEB27'},
+  {ticker:'DLRMAR27',position:'Mar-27',maturity:lastBusinessDay(2027,2),iolSymbol:'DLR/MAR27'},
+  {ticker:'DLRABR27',position:'Abr-27',maturity:lastBusinessDay(2027,3),iolSymbol:'DLR/ABR27'},
+  {ticker:'DLRMAY27',position:'May-27',maturity:lastBusinessDay(2027,4),iolSymbol:'DLR/MAY27'},
+  {ticker:'DLRJUN27',position:'Jun-27',maturity:lastBusinessDay(2027,5),iolSymbol:'DLR/JUN27'}
+];
+let currentSpot = 0;
 
 // =====================================================
 // USD LINKED - Bonos ajustados por tipo de cambio oficial
@@ -1107,6 +1476,15 @@ const BOND_META = {
   TTD26:{emisor:'Tesoro Nacional',clase:'Dual',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa fija/variable'}
 };
 
+// Add BOND_META for provinciales
+Object.entries(PROVINCIAL_BONDS).forEach(([k,b])=>{
+  BOND_META[k]={emisor:'Provincia de '+b.province,clase:'Bono Provincial',monedaDenom:'USD',monedaPago:'USD',legislacion:b.law==='New York'?'Nueva York':'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 1'};
+});
+// Add BOND_META for corporativos USD
+Object.entries(CORP_BONDS_USD).forEach(([k,b])=>{
+  BOND_META[k]={emisor:b.issuer,clase:'ON USD',monedaDenom:'USD',monedaPago:'USD',legislacion:b.law==='New York'?'Nueva York':'Argentina',convencion:'30/360',tipoCupon:'Fija',sector:b.sector,rating:b.rating||''};
+});
+
 function buildInstruments(){
   allInstruments = [];
   const today = new Date();
@@ -1150,6 +1528,35 @@ function buildInstruments(){
   DUALES_TAMAR.forEach(l=>{
     if(parseDate(l.maturity)>today)
       allInstruments.push({ticker:l.ticker,name:l.name,panel:'ARS',category:'Duales/Tamar',calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1});
+  });
+  // Panel 3: Provinciales USD
+  Object.keys(PROVINCIAL_BONDS).forEach(k=>{
+    const b=PROVINCIAL_BONDS[k];
+    if(parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'PROV',category:b.province,calcType:'bond',data:b,bidPx:0,askPx:0,plazo:1});
+  });
+  // Panel 4: Corporativos USD
+  Object.keys(CORP_BONDS_USD).forEach(k=>{
+    const b=CORP_BONDS_USD[k];
+    if(parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'CORP',category:b.issuer,calcType:'bond',data:b,bidPx:0,askPx:0,plazo:1,_issuer:b.issuer,_sector:b.sector,_legislation:b.law==='New York'?'NY':'Local',_rating:b.rating||''});
+  });
+  // Panel 5: Corporativos USD Linked
+  CORP_BONDS_USDLINKED.forEach(l=>{
+    if(parseDate(l.maturity)>today)
+      allInstruments.push({ticker:l.ticker,name:l.name,panel:'CORPLINK',category:l.issuer,calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1,_issuer:l.issuer,_sector:l.sector,_legislation:l.legislation||'Local',_rating:l.rating||''});
+  });
+  // Panel 6: Corporativos Tamar
+  CORP_BONDS_TAMAR.forEach(l=>{
+    if(parseDate(l.maturity)>today)
+      allInstruments.push({ticker:l.ticker,name:l.name,panel:'CORPTAMAR',category:l.issuer,calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1,_issuer:l.issuer,_sector:l.sector,_legislation:l.legislation||'Local',_rating:l.rating||''});
+  });
+  // Panel 7: Rofex Futuros USD
+  ROFEX_CONTRACTS.forEach(c=>{
+    if(parseDate(c.maturity)>today)
+      allInstruments.push({ticker:c.ticker,name:'DLR '+c.position,panel:'ROFEX',category:'Dólar Futuro',calcType:'futures',
+        data:c,bidPx:0,askPx:0,plazo:0,lastPx:0,oi:0,vol:0,basis:0,impliedTNA:0,impliedTEA:0,impliedTEM:0,
+        _position:c.position,_iolSymbol:c.iolSymbol});
   });
   // Custom instruments from localStorage
   getCustomInstruments().forEach(c=>{
@@ -1409,15 +1816,21 @@ function rebuildAndRefresh(){
   allInstruments.forEach(i=>{
     const s=snapshot[i.ticker];
     if(s){i.bidPx=s.bidPx;i.askPx=s.askPx;i.plazo=s.plazo;}
-    recalcRow(i);
+    if(i.calcType==='futures') recalcFutures(i);
+    else recalcRow(i);
   });
-  renderPanel('tblUSD','USD');
-  renderPanel('tblARS','ARS');
-  const usdCount=allInstruments.filter(i=>i.panel==='USD').length;
-  const arsCount=allInstruments.filter(i=>i.panel==='ARS').length;
-  document.getElementById('countUSD').textContent=usdCount+' instrumentos';
-  document.getElementById('countARS').textContent=arsCount+' instrumentos';
-  renderYieldCharts('USD');renderYieldCharts('ARS');
+  ALL_PANELS.forEach(p=>{
+    if(p==='ROFEX'){
+      renderRofexPanel();
+      renderRofexCharts();
+    } else {
+      renderPanel(PANEL_TABLES[p],p);
+      renderYieldCharts(p);
+    }
+    const cnt=allInstruments.filter(i=>i.panel===p).length;
+    const el=document.getElementById('count'+p);
+    if(el) el.textContent=cnt+'';
+  });
 }
 function renderAdminList(){
   const custom=getCustomInstruments();
@@ -2508,10 +2921,10 @@ function renderYieldCharts(panel){
 
 function updateYieldCharts(panel){
   if(!panel){
-    // Update active tab
     const active = document.querySelector('.tab-btn.active');
     panel = active?.id?.includes('USD') ? 'USD' : 'ARS';
   }
+  if(panel==='ROFEX'){ renderRofexCharts(); return; }
   renderYieldCharts(panel);
 }
 
@@ -2555,7 +2968,7 @@ async function fetchPrices(){
         inst.lastPxPrevClose = data.prevClose;
         inst.lastPxTime = data.time;
         // Auto-fill bid if empty (skip categories where price units don't match calc)
-        const skipAutoFill = inst.category === 'Bopreales' || inst.category === 'USD Linked' || inst.category === 'Duales/Tamar';
+        const skipAutoFill = inst.category === 'Bopreales' || inst.category === 'USD Linked' || inst.category === 'Duales/Tamar' || inst.calcType === 'futures';
         if(!skipAutoFill && inst.bidPx === 0 && data.last > 0){
           inst.bidPx = data.last;
           recalcRow(inst);
@@ -2563,8 +2976,7 @@ async function fetchPrices(){
       }
     }
     updateAllLastPx();
-    updateYieldCharts('USD');
-    updateYieldCharts('ARS');
+    ALL_PANELS.forEach(p=>updateYieldCharts(p));
     toast('Precios actualizados ' + now + ' (' + json.count + ' símbolos)');
   } catch(e){
     console.warn('Price fetch error:', e);
@@ -2620,14 +3032,16 @@ function snapshotState(){
   }
   const grid = document.querySelector('.tab-pane-grid');
   const gridSplit = grid ? grid.style.gridTemplateColumns : '';
-  const activeTab = document.querySelector('.tab-btn.active')?.id?.includes('ARS') ? 'ARS' : 'USD';
-  return {
-    instruments,
-    gridSplit,
-    activeTab,
-    yieldMetricUSD: document.getElementById('metricUSD')?.value || 'TNA',
-    yieldMetricARS: document.getElementById('metricARS')?.value || 'TNA'
-  };
+  // Detect active tab
+  const activeBtn = document.querySelector('.tab-btn.active');
+  let activeTab = 'USD';
+  if(activeBtn) ALL_PANELS.forEach(p=>{ if(activeBtn.id === 'tabBtn'+p) activeTab = p; });
+  const metrics = {};
+  ALL_PANELS.forEach(p=>{
+    const m = document.getElementById('metric'+p);
+    if(m) metrics['yieldMetric'+p] = m.value;
+  });
+  return { instruments, gridSplit, activeTab, spot: currentSpot, ...metrics };
 }
 
 function saveCurrentView(){
@@ -2663,8 +3077,18 @@ function loadProfile(name){
     }
   }
   // Re-render tables
-  renderPanel('tblUSD','USD');
-  renderPanel('tblARS','ARS');
+  ALL_PANELS.forEach(p=>{
+    if(p==='ROFEX') return;
+    renderPanel(PANEL_TABLES[p], p);
+  });
+  // Restore spot and Rofex
+  if(profile.spot > 0){
+    currentSpot = profile.spot;
+    const spotEl = document.getElementById('spotInput');
+    if(spotEl) spotEl.value = currentSpot.toFixed(2);
+  }
+  allInstruments.filter(i=>i.panel==='ROFEX').forEach(i=>recalcFutures(i));
+  renderRofexPanel();
   // Restore grid split
   if(profile.gridSplit){
     document.querySelectorAll('.tab-pane-grid').forEach(g => g.style.gridTemplateColumns = profile.gridSplit);
@@ -2672,17 +3096,16 @@ function loadProfile(name){
   // Restore active tab
   if(profile.activeTab) switchTab(profile.activeTab);
   // Restore yield metrics
-  if(profile.yieldMetricUSD){
-    const m = document.getElementById('metricUSD');
-    if(m){ m.value = profile.yieldMetricUSD; }
-  }
-  if(profile.yieldMetricARS){
-    const m = document.getElementById('metricARS');
-    if(m){ m.value = profile.yieldMetricARS; }
-  }
+  ALL_PANELS.forEach(p=>{
+    const key = 'yieldMetric'+p;
+    if(profile[key]){
+      const m = document.getElementById('metric'+p);
+      if(m) m.value = profile[key];
+    }
+  });
   // Re-render charts
-  updateYieldCharts('USD');
-  updateYieldCharts('ARS');
+  ALL_PANELS.filter(p=>p!=='ROFEX').forEach(p=>updateYieldCharts(p));
+  renderRofexCharts();
 }
 
 function promptCreateProfile(){
@@ -2735,26 +3158,301 @@ function renderProfileSelector(){
 // =====================================================
 // INITIALIZATION
 // =====================================================
+// =====================================================
+// CORPORATE FILTERS
+// =====================================================
+function populateCorpFilters(panel){
+  const items = allInstruments.filter(i=>i.panel===panel);
+  const prefix = panel==='CORP'?'filterCorp':panel==='CORPLINK'?'filterCorpLink':'filterCorpTamar';
+  const emisores = [...new Set(items.map(i=>i._issuer).filter(Boolean))].sort();
+  const sectors = [...new Set(items.map(i=>i._sector).filter(Boolean))].sort();
+  const legs = [...new Set(items.map(i=>i._legislation).filter(Boolean))].sort();
+  const ratings = [...new Set(items.map(i=>i._rating).filter(Boolean))].sort();
+  const fill = (id,vals,label)=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    sel.innerHTML=`<option value="">${label}: Todos</option>`+vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+  };
+  fill(prefix+'Emisor',emisores,'Emisor');
+  fill(prefix+'Sector',sectors,'Sector');
+  fill(prefix+'Leg',legs,'Legislación');
+  fill(prefix+'Rating',ratings,'Rating');
+}
+
+function applyCorpFilter(panel){
+  const prefix = panel==='CORP'?'filterCorp':panel==='CORPLINK'?'filterCorpLink':'filterCorpTamar';
+  const fEmisor = document.getElementById(prefix+'Emisor')?.value||'';
+  const fSector = document.getElementById(prefix+'Sector')?.value||'';
+  const fLeg = document.getElementById(prefix+'Leg')?.value||'';
+  const fRating = document.getElementById(prefix+'Rating')?.value||'';
+  const tbody = document.querySelector(`#${PANEL_TABLES[panel]} tbody`);
+  if(!tbody) return;
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(row=>{
+    if(row.classList.contains('cat-header')){row.style.display='';return;}
+    const ticker = row.dataset.ticker;
+    const inst = allInstruments.find(i=>i.ticker===ticker);
+    if(!inst){row.style.display='';return;}
+    let show = true;
+    if(fEmisor && inst._issuer!==fEmisor) show=false;
+    if(fSector && inst._sector!==fSector) show=false;
+    if(fLeg && inst._legislation!==fLeg) show=false;
+    if(fRating && inst._rating!==fRating) show=false;
+    row.style.display = show ? '' : 'none';
+  });
+  // Hide empty category headers
+  const catHeaders = tbody.querySelectorAll('.cat-header');
+  catHeaders.forEach(ch=>{
+    let hasVisible = false;
+    let row = ch.nextElementSibling;
+    while(row && !row.classList.contains('cat-header')){
+      if(row.style.display !== 'none') hasVisible = true;
+      row = row.nextElementSibling;
+    }
+    ch.style.display = hasVisible ? '' : 'none';
+  });
+}
+
+// =====================================================
+// ROFEX FUTURES FUNCTIONS
+// =====================================================
+function recalcFutures(inst){
+  const spot = currentSpot;
+  const mat = parseDate(inst.data.maturity);
+  const today = new Date();
+  const days = Math.max(1, Math.round((mat - today) / (1000*60*60*24)));
+  inst.dtm = days;
+  const price = inst.lastPx || inst.bidPx || 0;
+  if(spot > 0 && price > 0){
+    inst.basis = price - spot;
+    inst.impliedTNA = (price / spot - 1) * (365 / days);
+    inst.impliedTEA = Math.pow(price / spot, 365 / days) - 1;
+    inst.impliedTEM = Math.pow(price / spot, 30 / days) - 1;
+  } else {
+    inst.basis = 0;
+    inst.impliedTNA = 0;
+    inst.impliedTEA = 0;
+    inst.impliedTEM = 0;
+  }
+}
+
+function renderRofexPanel(){
+  const tbody = document.querySelector('#tblROFEX tbody');
+  if(!tbody) return;
+  const items = allInstruments.filter(i=>i.panel==='ROFEX');
+  items.sort((a,b)=>(a.dtm||9999)-(b.dtm||9999));
+  const fmtN = (v,d)=> v ? v.toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '-';
+  const fmtPct = (v)=> v ? (v*100).toFixed(2)+'%' : '-';
+  let html = '';
+  for(const inst of items){
+    const px = inst.lastPx || 0;
+    html += `<tr data-ticker="${inst.ticker}">
+      <td style="text-align:left;font-weight:600">${inst._position}</td>
+      <td style="text-align:left;font-size:.6rem;color:var(--text-light)">${inst.ticker}</td>
+      <td class="last-px">${px?fmtN(px,2):'-'}</td>
+      <td>${inst.bidPx?fmtN(inst.bidPx,2):'-'}</td>
+      <td>${inst.askPx?fmtN(inst.askPx,2):'-'}</td>
+      <td style="font-size:.58rem">${inst.oi?fmtN(inst.oi,0):'-'}</td>
+      <td style="font-size:.58rem">${inst.vol?fmtN(inst.vol,0):'-'}</td>
+      <td>${inst.dtm||'-'}</td>
+      <td style="color:${inst.basis>0?'var(--red)':inst.basis<0?'var(--green)':'inherit'}">${inst.basis?fmtN(inst.basis,2):'-'}</td>
+      <td style="font-weight:600;color:var(--accent)">${fmtPct(inst.impliedTNA)}</td>
+      <td>${fmtPct(inst.impliedTEA)}</td>
+      <td>${fmtPct(inst.impliedTEM)}</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function onSpotChange(){
+  const input = document.getElementById('spotInput');
+  if(!input) return;
+  currentSpot = parseFloat(input.value) || 0;
+  localStorage.setItem('rfSpotManual', currentSpot.toString());
+  allInstruments.filter(i=>i.panel==='ROFEX').forEach(i=>recalcFutures(i));
+  renderRofexPanel();
+  renderRofexCharts();
+}
+
+async function fetchSpot(){
+  const statusEl = document.getElementById('spotStatus');
+  if(statusEl) statusEl.textContent = 'Consultando...';
+  try{
+    const res = await fetch('/api/dolar-spot');
+    const json = await res.json();
+    if(json.mayorista > 0){
+      currentSpot = json.mayorista;
+      const input = document.getElementById('spotInput');
+      if(input) input.value = currentSpot.toFixed(2);
+      localStorage.setItem('rfSpotManual', currentSpot.toString());
+      if(statusEl) statusEl.textContent = `BCRA ${json.fecha||''} ${json.source?'('+json.source+')':''}`;
+      allInstruments.filter(i=>i.panel==='ROFEX').forEach(i=>recalcFutures(i));
+      renderRofexPanel();
+      renderRofexCharts();
+    } else {
+      if(statusEl) statusEl.textContent = 'No disponible - ingrese manualmente';
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Error - ingrese manualmente';
+  }
+}
+
+async function fetchRofexPrices(){
+  try{
+    const res = await fetch('/api/rofex');
+    const json = await res.json();
+    if(!json.data) return;
+    const rofexItems = allInstruments.filter(i=>i.panel==='ROFEX');
+    for(const inst of rofexItems){
+      const sym = inst._iolSymbol;
+      // Try multiple symbol formats
+      const d = json.data[sym] || json.data[inst.ticker] || json.data[sym?.replace('/','')] || null;
+      if(d){
+        if(d.last > 0) inst.lastPx = d.last;
+        if(d.bid > 0) inst.bidPx = d.bid;
+        if(d.ask > 0) inst.askPx = d.ask;
+        if(d.oi > 0) inst.oi = d.oi;
+        if(d.vol > 0) inst.vol = d.vol;
+        recalcFutures(inst);
+      }
+    }
+    renderRofexPanel();
+    renderRofexCharts();
+  }catch(e){
+    console.warn('Rofex fetch error:', e);
+  }
+}
+
+let rofexCharts = {};
+function renderRofexCharts(){
+  const container = document.getElementById('chartsROFEX');
+  if(!container) return;
+  const items = allInstruments.filter(i=>i.panel==='ROFEX' && i.lastPx > 0);
+  items.sort((a,b)=>(a.dtm||0)-(b.dtm||0));
+  // Destroy old charts
+  Object.values(rofexCharts).forEach(c=>{try{c.destroy();}catch(e){}});
+  rofexCharts = {};
+  if(items.length === 0){
+    container.innerHTML = '<div style="padding:1rem;font-size:.7rem;color:var(--text-light)">Sin datos de precios</div>';
+    return;
+  }
+  container.innerHTML = '';
+  // Chart 1: Curva de precios
+  const priceCard = document.createElement('div');
+  priceCard.className = 'yield-chart-card';
+  priceCard.innerHTML = '<h4 style="font-size:.7rem;padding:.3rem .5rem;margin:0;color:var(--primary)">Precio Futuro vs Días</h4><div class="yield-chart-container" style="height:180px"><canvas></canvas></div>';
+  container.appendChild(priceCard);
+  const ctx1 = priceCard.querySelector('canvas').getContext('2d');
+  rofexCharts.price = new Chart(ctx1, {
+    type:'scatter',
+    data:{
+      datasets:[{
+        label:'Precio',
+        data:items.map(i=>({x:i.dtm, y:i.lastPx})),
+        backgroundColor:'rgba(49,130,206,.7)',
+        borderColor:'rgba(49,130,206,1)',
+        pointRadius:5,
+        showLine:true,
+        tension:0.3
+      },{
+        label:'Spot',
+        data: currentSpot>0 ? [{x:0,y:currentSpot},{x:Math.max(...items.map(i=>i.dtm)),y:currentSpot}] : [],
+        borderColor:'rgba(229,62,62,.5)',
+        borderDash:[5,5],
+        pointRadius:0,
+        showLine:true,
+        borderWidth:1
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{font:{size:9}}}},
+      scales:{
+        x:{title:{display:true,text:'Días',font:{size:9}},ticks:{font:{size:8}}},
+        y:{title:{display:true,text:'Precio',font:{size:9}},ticks:{font:{size:8}}}
+      }
+    }
+  });
+  // Chart 2: TNA implícita
+  const tnaItems = items.filter(i=>i.impliedTNA>0);
+  if(tnaItems.length > 0){
+    const tnaCard = document.createElement('div');
+    tnaCard.className = 'yield-chart-card';
+    tnaCard.innerHTML = '<h4 style="font-size:.7rem;padding:.3rem .5rem;margin:0;color:var(--primary)">TNA Implícita vs Días</h4><div class="yield-chart-container" style="height:180px"><canvas></canvas></div>';
+    container.appendChild(tnaCard);
+    const ctx2 = tnaCard.querySelector('canvas').getContext('2d');
+    rofexCharts.tna = new Chart(ctx2, {
+      type:'scatter',
+      data:{
+        datasets:[{
+          label:'TNA impl.',
+          data:tnaItems.map(i=>({x:i.dtm, y:i.impliedTNA*100})),
+          backgroundColor:'rgba(56,161,105,.7)',
+          borderColor:'rgba(56,161,105,1)',
+          pointRadius:5,
+          showLine:true,
+          tension:0.3
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{title:{display:true,text:'Días',font:{size:9}},ticks:{font:{size:8}}},
+          y:{title:{display:true,text:'TNA %',font:{size:9}},ticks:{font:{size:8},callback:v=>v.toFixed(1)+'%'}}
+        }
+      }
+    });
+  }
+}
+
+const ALL_PANELS = ['USD','ARS','PROV','CORP','CORPLINK','CORPTAMAR','ROFEX'];
+const PANEL_TABLES = {USD:'tblUSD',ARS:'tblARS',PROV:'tblPROV',CORP:'tblCORP',CORPLINK:'tblCORPLINK',CORPTAMAR:'tblCORPTAMAR',ROFEX:'tblROFEX'};
+
 document.addEventListener('DOMContentLoaded',function(){
   buildInstruments();
-  allInstruments.forEach(inst=>recalcRow(inst));
-  renderPanel('tblUSD','USD');
-  renderPanel('tblARS','ARS');
-  const usdCount = allInstruments.filter(i=>i.panel==='USD').length;
-  const arsCount = allInstruments.filter(i=>i.panel==='ARS').length;
-  document.getElementById('countUSD').textContent = `${usdCount} instrumentos`;
-  document.getElementById('countARS').textContent = `${arsCount} instrumentos`;
+  allInstruments.forEach(inst=>{
+    if(inst.calcType==='futures') recalcFutures(inst);
+    else recalcRow(inst);
+  });
+  ALL_PANELS.forEach(p=>{
+    if(p==='ROFEX') return; // Rofex has custom renderer
+    renderPanel(PANEL_TABLES[p], p);
+    const cnt = allInstruments.filter(i=>i.panel===p).length;
+    const el = document.getElementById('count'+p);
+    if(el) el.textContent = `${cnt}`;
+  });
+  // Rofex init
+  const savedSpot = parseFloat(localStorage.getItem('rfSpotManual'));
+  if(savedSpot > 0){
+    currentSpot = savedSpot;
+    const spotEl = document.getElementById('spotInput');
+    if(spotEl) spotEl.value = savedSpot.toFixed(2);
+    allInstruments.filter(i=>i.panel==='ROFEX').forEach(i=>recalcFutures(i));
+  }
+  renderRofexPanel();
+  const rofexCnt = allInstruments.filter(i=>i.panel==='ROFEX').length;
+  const rofexEl = document.getElementById('countROFEX');
+  if(rofexEl) rofexEl.textContent = `${rofexCnt}`;
+  renderRofexCharts();
   updateClock();
   setInterval(updateClock,1000);
+  // Populate corp filters
+  populateCorpFilters('CORP');
+  populateCorpFilters('CORPLINK');
+  populateCorpFilters('CORPTAMAR');
   // Load saved profile
   renderProfileSelector();
   loadProfile(getActiveProfileName());
-  // Initial yield charts
-  renderYieldCharts('USD');
-  renderYieldCharts('ARS');
+  // Initial yield charts (skip ROFEX, has own charts)
+  ALL_PANELS.filter(p=>p!=='ROFEX').forEach(p=>renderYieldCharts(p));
   // Fetch live prices on load + every 30s
   fetchPrices();
   setInterval(fetchPrices, 30000);
+  // Fetch Rofex spot + prices
+  fetchSpot();
+  fetchRofexPrices();
+  setInterval(fetchRofexPrices, 30000);
   // Auto-save on page close
   window.addEventListener('beforeunload', ()=>{ saveCurrentView(); });
 });
