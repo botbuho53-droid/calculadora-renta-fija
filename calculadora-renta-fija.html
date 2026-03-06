@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Renta Fija - Argentina</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#1a365d;--primary-light:#2c5282;--accent:#3182ce;--bg:#f0f2f5;--card:#fff;--text:#2d3748;--text-light:#718096;--border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.12);--shadow-lg:0 4px 6px rgba(0,0,0,.07);--green:#38a169;--red:#e53e3e;--orange:#dd6b20}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.4;font-size:13px}
+.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:.8rem 1.5rem;box-shadow:var(--shadow-lg);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:1.2rem;font-weight:700}
+.header p{font-size:.75rem;opacity:.85;margin-top:.1rem}
+.header-right{display:flex;gap:.75rem;align-items:center}
+.header-right a{color:#fff;text-decoration:none;font-size:.75rem;opacity:.85;padding:.3rem .6rem;border:1px solid rgba(255,255,255,.3);border-radius:4px}
+.clock{font-size:.75rem;opacity:.9;font-variant-numeric:tabular-nums}
+.tab-bar{display:flex;gap:0;padding:.75rem .75rem 0;max-width:100%}
+.tab-btn{padding:.5rem 1.5rem;font-size:.85rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;transition:all .15s;font-family:inherit;position:relative;bottom:-1px}
+.tab-btn.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow);z-index:1}
+.tab-btn:not(.active){background:var(--primary-light);color:rgba(255,255,255,.85)}
+.tab-btn:not(.active):hover{background:var(--primary);color:#fff}
+.tab-btn .tab-count{font-size:.65rem;font-weight:400;opacity:.7;margin-left:.4rem}
+.tab-content{padding:0 .75rem .75rem;max-width:100%}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.panel{background:var(--card);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.panel-title{background:var(--primary);color:#fff;padding:.5rem .8rem;font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel-body{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 140px)}
+.panel-body table{width:100%;border-collapse:collapse;font-size:.65rem;white-space:nowrap;table-layout:fixed}
+.panel-body th{background:#f1f5f9;color:var(--primary);font-weight:600;padding:.3rem .2rem;text-align:right;position:sticky;top:0;z-index:2;border-bottom:2px solid var(--border);font-size:.62rem;position:relative;overflow:hidden;text-overflow:ellipsis}
+.th-resizer{position:absolute;right:0;top:0;width:4px;height:100%;cursor:col-resize;background:transparent;z-index:3}
+.th-resizer:hover,.th-resizer.active{background:var(--accent)}
+.panel-body th:nth-child(1),.panel-body th:nth-child(2){text-align:left}
+.panel-body td{padding:.2rem .15rem;text-align:right;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis}
+.panel-body td:nth-child(1),.panel-body td:nth-child(2){text-align:left}
+.panel-body tr:hover td{background:#f0f7ff}
+.panel-body tr.selected td{background:#ebf5ff;font-weight:600}
+.cat-header td{background:linear-gradient(135deg,var(--primary-light),var(--accent));color:#fff;font-weight:700;font-size:.72rem;padding:.3rem .5rem;text-align:left!important;letter-spacing:.3px;cursor:pointer;user-select:none}
+.cat-toggle{float:right;font-size:.6rem;opacity:.7;margin-right:.3rem;transition:transform .2s}
+.cat-header.collapsed .cat-toggle{transform:rotate(-90deg)}
+.yield-chart-card h4{cursor:pointer;user-select:none}
+.chart-toggle{float:right;font-size:.55rem;opacity:.6;transition:transform .2s}
+.yield-chart-card.collapsed .chart-toggle{transform:rotate(-90deg)}
+.yield-chart-card.collapsed .yield-chart-container,.yield-chart-card.collapsed .chart-h-resizer{display:none}
+.tab-pane-grid{display:grid;grid-template-columns:1fr 6px 340px;gap:0}
+.grid-resizer{width:6px;cursor:col-resize;background:var(--border);border-radius:3px;transition:background .15s;position:relative;z-index:3}
+.grid-resizer:hover,.grid-resizer.active{background:var(--accent)}
+.grid-resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:32px;background:var(--text-light);border-radius:1px;opacity:.5}
+.grid-resizer:hover::after,.grid-resizer.active::after{opacity:1;background:#fff}
+.charts-sidebar{display:flex;flex-direction:column;gap:.4rem;overflow-y:auto;max-height:calc(100vh - 140px);padding-top:.2rem}
+.yield-chart-card{background:var(--card);border-radius:6px;box-shadow:var(--shadow);padding:.4rem .5rem;position:relative}
+.yield-chart-card>h4{font-size:.7rem;color:var(--primary);margin:0 0 .2rem;font-weight:700}
+.yield-chart-container{position:relative;height:170px}
+.chart-h-resizer{height:5px;cursor:row-resize;background:transparent;border-radius:0 0 6px 6px;transition:background .15s}
+.chart-h-resizer:hover,.chart-h-resizer.active{background:var(--accent);opacity:.5}
+.metric-selector{font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:3px;background:#fff;cursor:pointer;font-family:inherit}
+.cell-input{width:50px;padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;text-align:right;background:transparent;font-family:inherit;transition:border-color .15s}
+.cell-input:hover{border-color:var(--border)}
+.cell-input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(49,130,206,.15)}
+.cell-input.w40{width:40px}
+.cell-select{padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;background:transparent;cursor:pointer;font-family:inherit}
+.cell-select:focus{outline:none;border-color:var(--accent)}
+.last-px{font-weight:600;font-variant-numeric:tabular-nums;color:var(--text);font-size:.65rem;cursor:pointer;min-width:46px;display:inline-block;text-align:right}
+.last-px.up{color:var(--green)}.last-px.down{color:var(--red)}
+.last-px:hover{text-decoration:underline}
+@keyframes flash-green{0%{background:#c6f6d5}100%{background:transparent}}
+@keyframes flash-red{0%{background:#fed7d7}100%{background:transparent}}
+.flash-up{animation:flash-green .6s ease-out}
+.flash-down{animation:flash-red .6s ease-out}
+.positive{color:var(--green);font-weight:600}
+.negative{color:var(--red);font-weight:600}
+.tag{display:inline-block;padding:0 4px;border-radius:3px;font-size:.6rem;font-weight:700}
+.tag-usd{background:#c6f6d5;color:#276749}
+.tag-ars{background:#bee3f8;color:#2a4365}
+.tag-cer{background:#fed7d7;color:#9b2c2c}
+.tag-dual{background:#e9d8fd;color:#553c9a}
+.tag-dl{background:#fefcbf;color:#744210}
+.detail-panel{display:none;margin:0 .75rem .75rem;background:var(--card);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.detail-panel.active{display:block}
+.detail-header{background:var(--primary);color:#fff;padding:.5rem .8rem;font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.detail-body{padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.metric-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem;margin-bottom:.75rem}
+.metric{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-radius:6px;padding:.5rem;text-align:center}
+.metric.green{background:linear-gradient(135deg,#276749,var(--green))}
+.metric.orange{background:linear-gradient(135deg,#c05621,var(--orange))}
+.metric .label{font-size:.6rem;opacity:.8;text-transform:uppercase}
+.metric .value{font-size:1.1rem;font-weight:700}
+.metric .sub{font-size:.6rem;opacity:.7}
+.dtw{overflow-x:auto;border:1px solid var(--border);border-radius:6px;max-height:300px;overflow-y:auto}
+.dtw table{font-size:.72rem}
+.dtw th{font-size:.68rem}
+.chart-container{position:relative;height:250px}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--primary);color:#fff;padding:.6rem 1rem;border-radius:6px;font-size:.78rem;display:none;z-index:999;box-shadow:var(--shadow-lg)}
+.profile-bar{display:flex;align-items:center;gap:.4rem}
+.profile-bar select{font-size:.72rem;padding:.2rem .4rem;border:1px solid rgba(255,255,255,.35);border-radius:4px;background:rgba(255,255,255,.12);color:#fff;font-family:inherit;cursor:pointer;min-width:90px}
+.profile-bar select option{color:var(--text);background:#fff}
+.profile-bar button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;border-radius:4px;font-size:.68rem;padding:.2rem .45rem;font-family:inherit;transition:background .15s}
+.profile-bar button:hover{background:rgba(255,255,255,.3)}
+.bond-info-panel{position:fixed;top:0;left:-380px;width:370px;height:100vh;background:var(--card);box-shadow:4px 0 20px rgba(0,0,0,.15);z-index:1000;transition:left .25s ease;display:flex;flex-direction:column}
+.bond-info-panel.open{left:0}
+.bond-info-header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:.6rem .8rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.bond-info-header h3{font-size:.85rem;font-weight:700;margin:0}
+.bond-info-header .sub{font-size:.65rem;opacity:.8}
+.bond-info-header button{background:none;border:none;color:#fff;cursor:pointer;font-size:1.2rem;padding:0 .3rem}
+.bond-info-body{overflow-y:auto;padding:.5rem;flex:1}
+.bond-info-body table{width:100%;border-collapse:collapse;font-size:.68rem}
+.bond-info-body tr{border-bottom:1px solid var(--border)}
+.bond-info-body td{padding:.3rem .4rem;vertical-align:top}
+.bond-info-body td:first-child{color:var(--text-light);font-weight:600;white-space:nowrap;width:42%}
+.bond-info-body td:last-child{color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.bond-info-body .section-title{background:var(--bg);color:var(--primary);font-weight:700;font-size:.65rem;padding:.25rem .4rem;text-transform:uppercase;letter-spacing:.5px}
+.bond-info-body .section-title td{padding:.25rem .4rem;font-weight:700;color:var(--primary)}
+.bond-info-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.15);z-index:999;display:none}
+.bond-info-overlay.open{display:block}
+.admin-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.35);z-index:1100;display:none}
+.admin-overlay.open{display:flex;align-items:center;justify-content:center}
+.admin-panel{background:var(--card);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.25);width:660px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.admin-header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:.6rem 1rem;display:flex;justify-content:space-between;align-items:center}
+.admin-header h3{font-size:.88rem;font-weight:700;margin:0}
+.admin-header button{background:none;border:none;color:#fff;cursor:pointer;font-size:1.2rem;padding:0 .3rem}
+.admin-body{overflow-y:auto;padding:.7rem;flex:1}
+.admin-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem .5rem;margin-bottom:.5rem}
+.admin-form label{font-size:.62rem;color:var(--text-light);font-weight:600;display:flex;flex-direction:column;gap:.12rem}
+.admin-form input,.admin-form select{font-size:.66rem;padding:.22rem .3rem;border:1px solid var(--border);border-radius:4px;font-family:inherit}
+.admin-form .full-width{grid-column:1/-1}
+.admin-form .span2{grid-column:span 2}
+.admin-btn-submit{grid-column:1/-1;background:var(--primary);color:#fff;border:none;padding:.35rem;border-radius:4px;cursor:pointer;font-size:.72rem;font-weight:600;font-family:inherit;margin-top:.2rem}
+.admin-btn-submit:hover{background:var(--primary-light)}
+.admin-section{margin-bottom:.4rem}
+.admin-section-title{font-size:.68rem;color:var(--primary);font-weight:700;margin:.5rem 0 .2rem;padding-bottom:.12rem;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.admin-section-title .toggle{font-size:.55rem;margin-right:.3rem;display:inline-block;transition:transform .2s}
+.admin-section-title.collapsed .toggle{transform:rotate(-90deg)}
+.admin-section-title.collapsed+.admin-form{display:none}
+.admin-list{margin-top:.4rem}
+.admin-list table{width:100%;border-collapse:collapse;font-size:.63rem}
+.admin-list th{background:var(--bg);padding:.2rem .35rem;text-align:left;font-weight:600;color:var(--text-light);border-bottom:1px solid var(--border)}
+.admin-list td{padding:.2rem .35rem;border-bottom:1px solid var(--border)}
+.admin-list .btn-act{background:none;border:none;cursor:pointer;font-size:.72rem;padding:0 .15rem}
+.admin-list .btn-edit{color:var(--primary)}
+.admin-list .btn-del{color:var(--danger,#e74c3c)}
+.amort-table{width:100%;border-collapse:collapse;font-size:.62rem;margin-top:.15rem}
+.amort-table th{background:var(--bg);padding:.15rem .25rem;font-weight:600;color:var(--text-light)}
+.amort-table td{padding:.15rem .25rem}
+.amort-table input{width:100%;font-size:.62rem;padding:.15rem .2rem;border:1px solid var(--border);border-radius:3px;font-family:inherit}
+.amort-add-btn{font-size:.6rem;background:none;border:1px dashed var(--border);color:var(--primary);cursor:pointer;padding:.15rem .4rem;border-radius:3px;margin-top:.15rem}
+.amort-add-btn:hover{background:var(--bg)}
+.licit-upload-area{border:2px dashed var(--border);border-radius:6px;padding:.6rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:.5rem}
+.licit-upload-area:hover{border-color:var(--accent);background:rgba(49,130,206,.04)}
+.licit-upload-area .icon{font-size:1.4rem;margin-bottom:.2rem}
+.licit-upload-area p{font-size:.65rem;color:var(--text-light)}
+.licit-upload-area .formats{font-size:.58rem;color:var(--text-light);opacity:.7;margin-top:.1rem}
+.licit-status{font-size:.63rem;color:var(--text-light);padding:.3rem 0;text-align:center}
+.licit-status.error{color:var(--red)}
+.licit-review table{width:100%;border-collapse:collapse;font-size:.62rem}
+.licit-review th{background:var(--bg);padding:.2rem .3rem;text-align:left;font-weight:600;color:var(--text-light);border-bottom:1px solid var(--border);white-space:nowrap}
+.licit-review td{padding:.15rem .25rem;border-bottom:1px solid var(--border)}
+.licit-review input,.licit-review select{font-size:.62rem;padding:.15rem .2rem;border:1px solid var(--border);border-radius:3px;font-family:inherit;width:100%}
+.licit-review .btn-row-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:.7rem}
+.licit-actions{display:flex;gap:.4rem;margin-top:.4rem;justify-content:flex-end}
+.licit-actions button{font-size:.68rem;padding:.3rem .7rem;border-radius:4px;cursor:pointer;font-family:inherit;font-weight:600}
+.licit-actions .btn-import{background:var(--primary);color:#fff;border:none}
+.licit-actions .btn-import:hover{background:var(--primary-light)}
+.licit-actions .btn-cancel{background:none;border:1px solid var(--border);color:var(--text)}
+.licit-raw{max-height:120px;overflow-y:auto;font-size:.58rem;background:var(--bg);border-radius:4px;padding:.3rem .4rem;margin:.3rem 0;white-space:pre-wrap;word-break:break-all;color:var(--text-light);border:1px solid var(--border)}
+@media(max-width:1200px){.tab-pane-grid{grid-template-columns:1fr!important}.grid-resizer{display:none}.charts-sidebar{max-height:none;flex-direction:row;flex-wrap:wrap}.yield-chart-card{flex:1 1 280px}}
+@media(max-width:900px){.detail-body{grid-template-columns:1fr}.tab-btn{padding:.4rem 1rem;font-size:.78rem}}
+</style>
+</head>
+<body>
+
+<div class="bond-info-overlay" id="bondInfoOverlay" onclick="closeBondInfo()"></div>
+<div class="bond-info-panel" id="bondInfoPanel">
+<div class="bond-info-header"><div><h3 id="bondInfoTitle">-</h3><div class="sub" id="bondInfoSub"></div></div><button onclick="closeBondInfo()">&times;</button></div>
+<div class="bond-info-body"><table id="bondInfoTable"><tbody></tbody></table></div>
+</div>
+
+<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
+<div class="admin-panel">
+<div class="admin-header"><h3 id="adminTitle">Administrar Instrumentos</h3><button onclick="closeAdminPanel()">&times;</button></div>
+<div class="admin-body">
+
+<div class="admin-section">
+<div class="licit-upload-area" onclick="document.getElementById('licitacionFile').click()">
+<div class="icon">&#128196;</div>
+<p>Cargar llamado a licitaci&oacute;n (PDF / Word)</p>
+<div class="formats">.pdf .docx &mdash; se infieren autom&aacute;ticamente los instrumentos</div>
+</div>
+<input type="file" id="licitacionFile" accept=".pdf,.docx" style="display:none" onchange="handleLicitacionFile(this)">
+<div id="licitStatus" class="licit-status" style="display:none"></div>
+<div id="licitReview" style="display:none"></div>
+</div>
+
+<div id="manualFormSection">
+<div class="admin-section">
+<div class="admin-section-title" id="adminCalcTitle">Datos de C&aacute;lculo (manual)</div>
+<div class="admin-form" id="adminFormCalc">
+<label>Tipo<select id="adminType" onchange="onAdminTypeChange()">
+<option value="lecap">LECAP / BONCAP</option>
+<option value="dualTamar">Dual / Tamar</option>
+<option value="usdLinked">USD Linked</option>
+<option value="boncer">BONCER / LECER</option>
+<option value="bond">Bono (USD/ARS)</option>
+</select></label>
+<label>Ticker<input id="adminTicker" placeholder="ej. S15A7" style="text-transform:uppercase"></label>
+<label>Nombre<input id="adminName" placeholder="ej. LECAP Abr 2027"></label>
+<label>Vencimiento<input id="adminMaturity" type="date"></label>
+<label id="lbl_vf">Valor Final (VF)<input id="adminVf" type="number" step="0.01" placeholder="165.30"></label>
+<label id="lbl_tem" style="display:none">TEM<input id="adminTem" type="number" step="0.0001" placeholder="0.0225"></label>
+<label id="lbl_cer" style="display:none">CER Base<input id="adminCer" type="number" step="0.01" placeholder="650.00"></label>
+<label id="lbl_coupon" style="display:none">Tasa Cup&oacute;n %<input id="adminCoupon" type="number" step="0.01" placeholder="2.00"></label>
+<label id="lbl_freq" style="display:none">Frecuencia<select id="adminFreq"><option value="1">Anual</option><option value="2" selected>Semestral</option><option value="4">Trimestral</option><option value="12">Mensual</option></select></label>
+<label id="lbl_firstCoupon" style="display:none">Primer Cup&oacute;n<input id="adminFirstCoupon" type="date"></label>
+<label id="lbl_issueDate" style="display:none">Fecha Emisi&oacute;n<input id="adminIssueDate" type="date"></label>
+<label id="lbl_bondPanel" style="display:none">Panel<select id="adminBondPanel"><option value="USD">USD</option><option value="ARS">ARS</option></select></label>
+<label id="lbl_bondCat" style="display:none">Categor&iacute;a<select id="adminBondCat">
+<option value="Globales">Globales</option><option value="Bonares">Bonares</option><option value="Bopreales">Bopreales</option>
+</select></label>
+<div id="lbl_amort" class="full-width" style="display:none">
+<label style="margin-bottom:.15rem">Amortizaci&oacute;n<select id="adminAmortType" onchange="onAmortTypeChange()">
+<option value="bullet">Bullet (100% al vto)</option>
+<option value="uniform">Uniforme (N cuotas iguales)</option>
+<option value="custom">Personalizada</option>
+</select></label>
+<div id="adminAmortUniform" style="display:none;margin-top:.15rem"><label style="font-size:.62rem">Cantidad de cuotas <input id="adminAmortN" type="number" min="1" value="5" style="width:50px;font-size:.62rem"></label></div>
+<div id="adminAmortCustom" style="display:none;margin-top:.15rem"><table class="amort-table" id="amortTable"><thead><tr><th>Fecha</th><th>%</th><th></th></tr></thead><tbody></tbody></table><button type="button" class="amort-add-btn" onclick="addAmortRow()">+ Agregar cuota</button></div>
+</div>
+</div>
+</div>
+
+<div class="admin-section">
+<div class="admin-section-title collapsed" onclick="this.classList.toggle('collapsed')"><span class="toggle">&#9660;</span>Condiciones de Emisi&oacute;n (opcional)</div>
+<div class="admin-form" id="adminFormMeta">
+<label>Emisor<input id="adminEmisor" placeholder="ej. Tesoro Nacional"></label>
+<label>Clase<input id="adminClase" placeholder="ej. LECAP"></label>
+<label>ISIN<input id="adminIsin" placeholder="ej. ARARGE..." style="text-transform:uppercase"></label>
+<label>Moneda Denom.<input id="adminMonDenom" placeholder="ej. ARS"></label>
+<label>Moneda Pago<input id="adminMonPago" placeholder="ej. ARS"></label>
+<label>Legislaci&oacute;n<input id="adminLeg" placeholder="ej. Argentina"></label>
+<label>Convenci&oacute;n<input id="adminConv" placeholder="ej. Actual/365"></label>
+<label>Tipo Cup&oacute;n<input id="adminTipoCupon" placeholder="ej. Descuento"></label>
+<label>L&aacute;mina M&iacute;n.<input id="adminLamina" placeholder="ej. $1"></label>
+</div>
+</div>
+
+<button class="admin-btn-submit" onclick="submitAdminForm()" id="adminSubmitBtn">Agregar instrumento</button>
+</div>
+
+<div class="admin-section" style="margin-top:.5rem">
+<div class="admin-section-title">Instrumentos personalizados</div>
+<div class="admin-list" id="adminList"></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="header">
+<div>
+<h1>Calculadora de Renta Fija - Argentina</h1>
+<p>Soberanos USD | LECAPs | BONCAPs | BONCER | Dólar Linked | Duales</p>
+</div>
+<div class="header-right">
+<div class="profile-bar">
+<select id="profileSelect" onchange="loadProfile(this.value)"></select>
+<button onclick="promptCreateProfile()" title="Nuevo perfil">+</button>
+<button onclick="saveCurrentView()" title="Guardar vista">Guardar</button>
+<button onclick="promptDeleteProfile()" title="Eliminar perfil">x</button>
+<button onclick="showAdminPanel()" title="Administrar instrumentos" style="margin-left:.3rem">Instrumentos</button>
+</div>
+<span class="clock" id="clock"></span>
+<a href="index.html">Dashboard IPC</a>
+</div>
+</div>
+
+<div class="tab-bar">
+<button class="tab-btn active" onclick="switchTab('USD')" id="tabBtnUSD">Bonos USD <span class="tab-count" id="countUSD"></span></button>
+<button class="tab-btn" onclick="switchTab('ARS')" id="tabBtnARS">Bonos Pesos <span class="tab-count" id="countARS"></span></button>
+</div>
+<div class="tab-content">
+<!-- TAB 1: Bonos USD -->
+<div class="tab-pane active" id="paneUSD">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="panel-body"><table id="tblUSD"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricUSD" onchange="updateYieldCharts('USD')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsUSD"></div>
+</div>
+</div>
+</div>
+<!-- TAB 2: Bonos Pesos -->
+<div class="tab-pane" id="paneARS">
+<div class="tab-pane-grid">
+<div class="panel">
+<div class="panel-body"><table id="tblARS"><thead><tr>
+<th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
+</tr></thead><tbody></tbody></table></div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<select class="metric-selector" id="metricARS" onchange="updateYieldCharts('ARS')">
+<option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+</div>
+<div id="chartsARS"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+<div class="detail-header"><span id="detailTitle">Detalle</span><button onclick="closeDetail()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.1rem">&times;</button></div>
+<div class="detail-body">
+<div>
+<div class="metric-cards" id="detailMetrics"></div>
+<div class="dtw" id="detailCashflows"></div>
+</div>
+<div>
+<div class="chart-container"><canvas id="chartDetail"></canvas></div>
+</div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =====================================================
+// T+1 BUSINESS DAY
+// =====================================================
+function nextBusinessDay(d){
+  const r=new Date(d);
+  r.setDate(r.getDate()+1);
+  while(r.getDay()===0||r.getDay()===6) r.setDate(r.getDate()+1);
+  return r;
+}
+
+// =====================================================
+// BOND DATA - Argentine Sovereign Bonds
+// Step-up coupon schedules from official prospectus
+// Amort schedules verified against 1816/CNV data
+// =====================================================
+// Step-up coupon schedule: returns annual rate for a given date
+function getCouponRate(bond, dateStr){
+  if(!bond.couponSchedule) return bond.couponRate;
+  for(const s of bond.couponSchedule){
+    if(dateStr>=s.from && dateStr<s.to) return s.rate;
+  }
+  return bond.couponSchedule[bond.couponSchedule.length-1].rate;
+}
+
+const BONDS = {
+  AL29: {
+    ticker:'AL29', name:'Bonar 2029', law:'Argentina', currency:'USD',
+    couponRate: 1.00, frequency: 2, maturity:'2029-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    amortSchedule: generateEqualAmort('2025-01-09','2029-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2029-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AL30: {
+    ticker:'AL30', name:'Bonar 2030', law:'Argentina', currency:'USD',
+    couponRate: 0.75, frequency: 2, maturity:'2030-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2023-07-09',rate:0.50},
+      {from:'2023-07-09',to:'2027-07-09',rate:0.75},
+      {from:'2027-07-09',to:'2030-07-10',rate:1.75}
+    ],
+    amortSchedule: [
+      {date:'2024-07-09',pct:4.0},
+      {date:'2025-01-09',pct:8.0},{date:'2025-07-09',pct:8.0},
+      {date:'2026-01-09',pct:8.0},{date:'2026-07-09',pct:8.0},
+      {date:'2027-01-09',pct:8.0},{date:'2027-07-09',pct:8.0},
+      {date:'2028-01-09',pct:8.0},{date:'2028-07-09',pct:8.0},
+      {date:'2029-01-09',pct:8.0},{date:'2029-07-09',pct:8.0},
+      {date:'2030-01-09',pct:8.0},{date:'2030-07-09',pct:8.0}
+    ],
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2030-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AL35: {
+    ticker:'AL35', name:'Bonar 2035', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2035-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:1.125},
+      {from:'2022-07-09',to:'2023-07-09',rate:1.50},
+      {from:'2023-07-09',to:'2024-07-09',rate:3.625},
+      {from:'2024-07-09',to:'2027-07-09',rate:4.125},
+      {from:'2027-07-09',to:'2028-07-09',rate:4.75},
+      {from:'2028-07-09',to:'2035-07-10',rate:5.00}
+    ],
+    amortSchedule: generateEqualAmort('2031-01-09','2035-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2035-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AL41: {
+    ticker:'AL41', name:'Bonar 2041', law:'Argentina', currency:'USD',
+    couponRate: 4.875, frequency: 2, maturity:'2041-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:2.50},
+      {from:'2022-07-09',to:'2029-07-09',rate:3.50},
+      {from:'2029-07-09',to:'2041-07-10',rate:4.875}
+    ],
+    amortSchedule: generateEqualAmort('2028-01-09','2041-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2041-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD29: {
+    ticker:'GD29', name:'Global 2029', law:'New York', currency:'USD',
+    couponRate: 1.00, frequency: 2, maturity:'2029-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    amortSchedule: generateEqualAmort('2025-01-09','2029-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2029-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD30: {
+    ticker:'GD30', name:'Global 2030', law:'New York', currency:'USD',
+    couponRate: 0.75, frequency: 2, maturity:'2030-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2023-07-09',rate:0.50},
+      {from:'2023-07-09',to:'2027-07-09',rate:0.75},
+      {from:'2027-07-09',to:'2030-07-10',rate:1.75}
+    ],
+    amortSchedule: [
+      {date:'2024-07-09',pct:4.0},
+      {date:'2025-01-09',pct:8.0},{date:'2025-07-09',pct:8.0},
+      {date:'2026-01-09',pct:8.0},{date:'2026-07-09',pct:8.0},
+      {date:'2027-01-09',pct:8.0},{date:'2027-07-09',pct:8.0},
+      {date:'2028-01-09',pct:8.0},{date:'2028-07-09',pct:8.0},
+      {date:'2029-01-09',pct:8.0},{date:'2029-07-09',pct:8.0},
+      {date:'2030-01-09',pct:8.0},{date:'2030-07-09',pct:8.0}
+    ],
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2030-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD35: {
+    ticker:'GD35', name:'Global 2035', law:'New York', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2035-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:1.125},
+      {from:'2022-07-09',to:'2023-07-09',rate:1.50},
+      {from:'2023-07-09',to:'2024-07-09',rate:3.625},
+      {from:'2024-07-09',to:'2027-07-09',rate:4.125},
+      {from:'2027-07-09',to:'2028-07-09',rate:4.75},
+      {from:'2028-07-09',to:'2035-07-10',rate:5.00}
+    ],
+    amortSchedule: generateEqualAmort('2031-01-09','2035-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2035-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD38: {
+    ticker:'GD38', name:'Global 2038', law:'New York', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2038-01-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:2.00},
+      {from:'2022-07-09',to:'2023-07-09',rate:3.875},
+      {from:'2023-07-09',to:'2024-07-09',rate:4.25},
+      {from:'2024-07-09',to:'2038-01-10',rate:5.00}
+    ],
+    amortSchedule: generateEqualAmort('2027-07-09','2038-01-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2038-01-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD41: {
+    ticker:'GD41', name:'Global 2041', law:'New York', currency:'USD',
+    couponRate: 4.875, frequency: 2, maturity:'2041-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:2.50},
+      {from:'2022-07-09',to:'2029-07-09',rate:3.50},
+      {from:'2029-07-09',to:'2041-07-10',rate:4.875}
+    ],
+    amortSchedule: generateEqualAmort('2028-01-09','2041-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2041-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  GD46: {
+    ticker:'GD46', name:'Global 2046', law:'New York', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2046-07-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:1.125},
+      {from:'2022-07-09',to:'2023-07-09',rate:1.50},
+      {from:'2023-07-09',to:'2024-07-09',rate:3.625},
+      {from:'2024-07-09',to:'2027-07-09',rate:4.125},
+      {from:'2027-07-09',to:'2028-07-09',rate:4.375},
+      {from:'2028-07-09',to:'2046-07-10',rate:5.00}
+    ],
+    amortSchedule: generateEqualAmort('2025-01-09','2046-07-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2046-07-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AE38: {
+    ticker:'AE38', name:'Bonar 2038', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2038-01-09',
+    firstCoupon:'2021-07-09', issueDate:'2020-09-04',
+    couponSchedule: [
+      {from:'2020-09-04',to:'2021-07-09',rate:0.125},
+      {from:'2021-07-09',to:'2022-07-09',rate:2.00},
+      {from:'2022-07-09',to:'2023-07-09',rate:3.875},
+      {from:'2023-07-09',to:'2024-07-09',rate:4.25},
+      {from:'2024-07-09',to:'2038-01-10',rate:5.00}
+    ],
+    amortSchedule: generateEqualAmort('2027-07-09','2038-01-09',2),
+    couponDates: function(from){return generateSemiannualDates('2021-07-09','2038-01-09',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AO27: {
+    ticker:'AO27', name:'Bonar 2027', law:'Argentina', currency:'USD',
+    couponRate: 6.00, frequency: 12, maturity:'2027-10-29',
+    firstCoupon:'2026-03-29', issueDate:'2026-02-25',
+    amortSchedule: [{date:'2027-10-29',pct:100}],
+    couponDates: function(from){return generateMonthlyDates('2026-03-29','2027-10-29',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  AN29: {
+    ticker:'AN29', name:'Bonar 2029N', law:'Argentina', currency:'USD',
+    couponRate: 6.50, frequency: 2, maturity:'2029-11-30',
+    firstCoupon:'2026-05-30', issueDate:'2025-12-09',
+    amortSchedule: [{date:'2029-11-30',pct:100}],
+    couponDates: function(from){return generateSemiannualDates('2026-05-30','2029-11-30',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  }
+};
+
+// =====================================================
+// BOPREALES - Bonos para importadores (BCRA, USD)
+// =====================================================
+const BOPREALES = {
+  BPY26: {
+    ticker:'BPY26', name:'Bopreal Serie 3', law:'Argentina', currency:'USD',
+    couponRate: 3.00, frequency: 4, maturity:'2026-05-31',
+    firstCoupon:'2024-05-31', issueDate:'2024-02-22',
+    amortSchedule: [
+      {date:'2025-11-30',pct:33.33},{date:'2026-02-28',pct:33.33},{date:'2026-05-31',pct:33.34}
+    ],
+    couponDates: function(from){return generateQuarterlyDates('2024-05-31','2026-05-31',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BPOA7: {
+    ticker:'BPOA7', name:'Bopreal Serie 1A', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2027-10-31',
+    firstCoupon:'2024-04-30', issueDate:'2024-01-25',
+    amortSchedule: [{date:'2027-04-30',pct:50},{date:'2027-10-31',pct:50}],
+    couponDates: function(from){return generateSemiannualDates('2024-04-30','2027-10-31',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BPOB7: {
+    ticker:'BPOB7', name:'Bopreal Serie 1B', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2027-10-31',
+    firstCoupon:'2024-04-30', issueDate:'2024-01-25',
+    amortSchedule: [{date:'2027-04-30',pct:50},{date:'2027-10-31',pct:50}],
+    couponDates: function(from){return generateSemiannualDates('2024-04-30','2027-10-31',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BPOC7: {
+    ticker:'BPOC7', name:'Bopreal Serie 1C', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2027-10-31',
+    firstCoupon:'2024-04-30', issueDate:'2024-01-25',
+    amortSchedule: [{date:'2027-04-30',pct:50},{date:'2027-10-31',pct:50}],
+    couponDates: function(from){return generateSemiannualDates('2024-04-30','2027-10-31',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BPOD7: {
+    ticker:'BPOD7', name:'Bopreal Serie 1D', law:'Argentina', currency:'USD',
+    couponRate: 5.00, frequency: 2, maturity:'2027-10-31',
+    firstCoupon:'2024-04-30', issueDate:'2024-01-25',
+    amortSchedule: [{date:'2027-04-30',pct:50},{date:'2027-10-31',pct:50}],
+    couponDates: function(from){return generateSemiannualDates('2024-04-30','2027-10-31',from)},
+    residualAt: function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  BPOB8: {
+    ticker:'BPOB8', name:'Bopreal Serie 1 Strip D', law:'Argentina', currency:'USD',
+    couponRate: 0, frequency: 0, maturity:'2028-10-31',
+    firstCoupon:null, issueDate:'2024-01-25',
+    amortSchedule: [{date:'2028-10-31',pct:100}],
+    couponDates: function(){return []},
+    residualAt: function(){return 100}
+  }
+};
+
+// =====================================================
+// USD LINKED - Bonos ajustados por tipo de cambio oficial
+// =====================================================
+const DOLAR_LINKED = [
+  {ticker:'D30A6',name:'Dólar Linked Abr 2026',maturity:'2026-04-30',price:0,vf:100},
+  {ticker:'TZV26',name:'LELINK Jun 2026',maturity:'2026-06-30',price:0,vf:100}
+];
+
+// =====================================================
+// DUALES / TAMAR - Bonos a tasa fija o variable
+// =====================================================
+const DUALES_TAMAR = [
+  {ticker:'TTM26',name:'Dual Mar 2026',maturity:'2026-03-15',price:0,vf:100,tem:0.0225},
+  {ticker:'M30A6',name:'Tamar Abr 2026',maturity:'2026-04-30',price:0,vf:100,tem:0.0270},
+  {ticker:'TTJ26',name:'Dual Jun 2026',maturity:'2026-06-30',price:0,vf:100,tem:0.0219},
+  {ticker:'M31G6',name:'Tamar Ago 2026',maturity:'2026-08-31',price:0,vf:100,tem:0.0270},
+  {ticker:'TTS26',name:'Dual Sep 2026',maturity:'2026-09-15',price:0,vf:100,tem:0.0217},
+  {ticker:'TTD26',name:'Dual Dic 2026',maturity:'2026-12-15',price:0,vf:100,tem:0.0214}
+];
+
+// =====================================================
+// LECAP/BONCAP DATA
+// Precios de mercado y VF oficiales (valor al vencimiento)
+// Convención TNA: Plazo remanente (interés simple anualizado)
+// =====================================================
+const LECAPS = [
+  {ticker:'S16M6',name:'LECAP Mar 2026',maturity:'2026-03-16',price:103.88,vf:104.60},
+  {ticker:'S17A6',name:'LECAP Abr 2026',maturity:'2026-04-17',price:106.45,vf:110.12},
+  {ticker:'S30A6',name:'LECAP Abr 2026',maturity:'2026-04-30',price:121.96,vf:128.69},
+  {ticker:'S29Y6',name:'LECAP May 2026',maturity:'2026-05-29',price:123.52,vf:132.56},
+  {ticker:'T30J6',name:'BONCAP Jun 2026',maturity:'2026-06-30',price:132.15,vf:145.77},
+  {ticker:'S31L6',name:'LECAP Jul 2026',maturity:'2026-07-31',price:104.80,vf:117.75},
+  {ticker:'S31G6',name:'LECAP Ago 2026',maturity:'2026-08-31',price:110.49,vf:128.62},
+  {ticker:'S30O6',name:'LECAP Oct 2026',maturity:'2026-10-30',price:111.89,vf:137.23},
+  {ticker:'S30N6',name:'LECAP Nov 2026',maturity:'2026-11-30',price:105.24,vf:131.94},
+  {ticker:'T15E7',name:'BONCAP Ene 2027',maturity:'2027-01-15',price:124.60,vf:162.98},
+  {ticker:'T30A7',name:'BONCAP Abr 2027',maturity:'2027-04-30',price:112.45,vf:158.83},
+  {ticker:'T31Y7',name:'BONCAP May 2027',maturity:'2027-05-31',price:106.50,vf:152.17},
+  {ticker:'T30J7',name:'BONCAP Jun 2027',maturity:'2027-06-30',price:107.75,vf:156.73}
+];
+
+// =====================================================
+// CER DATA - Serie histórica mensual
+// Base 02/02/2002 = 1. Valores aproximados recientes.
+// =====================================================
+// CER (Coeficiente de Estabilización de Referencia) - Base 02/02/2002 = 1
+// Valores mensuales aproximados (día 15 de cada mes) - Fuente BCRA
+const CER_SERIES = {
+  '2025-01':515.91,'2025-02':535.55,'2025-03':547.33,
+  '2025-04':560.46,'2025-05':581.20,'2025-06':597.47,
+  '2025-07':606.44,'2025-08':616.14,'2025-09':627.85,
+  '2025-10':639.78,'2025-11':653.21,'2025-12':668.23,
+  '2026-01':677.34,'2026-02':700.00,'2026-03':717.91
+};
+
+// Retorna el CER del 10° día hábil anterior a dateStr (convención de mercado)
+function getCER(dateStr){
+  // Retroceder 10 días hábiles desde la fecha de liquidación
+  let d = parseDate(dateStr);
+  let bizDays = 0;
+  while(bizDays < 10){
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+    const dow = d.getDay();
+    if(dow !== 0 && dow !== 6) bizDays++;
+  }
+  const key = formatDate(d).substring(0,7);
+  if(CER_SERIES[key]) return CER_SERIES[key];
+  const keys=Object.keys(CER_SERIES).sort();
+  const last=keys[keys.length-1];
+  if(key>last){
+    const lastVal=CER_SERIES[last];
+    const lastDate=parseDate(last+'-15');
+    const months=Math.max(0,(d-lastDate)/(1000*60*60*24*30.44));
+    return lastVal*Math.pow(1.02,months);
+  }
+  if(key<keys[0]) return CER_SERIES[keys[0]];
+  // Interpolate between months
+  for(let i=0;i<keys.length-1;i++){
+    if(key>=keys[i]&&key<keys[i+1]){
+      const v0=CER_SERIES[keys[i]], v1=CER_SERIES[keys[i+1]];
+      const d0=parseDate(keys[i]+'-15'), d1=parseDate(keys[i+1]+'-15');
+      const frac=(d-d0)/(d1-d0);
+      return v0+(v1-v0)*frac;
+    }
+  }
+  return CER_SERIES[keys[keys.length-1]];
+}
+
+// BONCER bond definitions
+const BONCER_BONDS = {
+  TX26: {
+    ticker:'TX26',name:'BONCER 2026',maturity:'2026-11-09',
+    couponRate:2.00,frequency:2,firstCoupon:'2021-05-09',
+    cerBase:22.5440, // CER 10 días hábiles antes de emisión (04/09/2020)
+    amortSchedule:[
+      {date:'2024-11-09',pct:20},{date:'2025-05-09',pct:20},
+      {date:'2025-11-09',pct:20},{date:'2026-05-09',pct:20},
+      {date:'2026-11-09',pct:20}
+    ],
+    residualAt:function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  TX28: {
+    ticker:'TX28',name:'BONCER 2028',maturity:'2028-11-09',
+    couponRate:2.25,frequency:2,firstCoupon:'2022-05-09',
+    cerBase:22.5440, // Misma emisión que TX26
+    amortSchedule: generateEqualAmort('2027-05-09','2028-11-09',2),
+    residualAt:function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  TZXM7: {
+    ticker:'TZXM7',name:'BONCER Mar 2027',maturity:'2027-03-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:639.78, // Emitido ~Oct 2025
+    amortSchedule:[{date:'2027-03-31',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZX27: {
+    ticker:'TZX27',name:'BONCER Jun 2027',maturity:'2027-06-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:597.47, // Emitido ~Jun 2025
+    amortSchedule:[{date:'2027-06-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXD7: {
+    ticker:'TZXD7',name:'BONCER Dic 2027',maturity:'2027-12-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:668.23, // Emitido ~Dic 2025
+    amortSchedule:[{date:'2027-12-31',pct:100}],
+    residualAt:function(){return 100}
+  },
+  DICP: {
+    ticker:'DICP',name:'Discount ARS (CER)',maturity:'2033-12-31',
+    couponRate:5.83,frequency:2,firstCoupon:'2010-06-30',
+    cerBase:1.4551,
+    amortSchedule: generateEqualAmort('2024-06-30','2033-12-31',2),
+    residualAt:function(d){return calcResidual(this.amortSchedule,d)}
+  },
+  TZX28: {
+    ticker:'TZX28',name:'LECER Jun 2028',maturity:'2028-06-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:700.00,
+    amortSchedule:[{date:'2028-06-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXM6: {
+    ticker:'TZXM6',name:'LECER Mar 2026',maturity:'2026-03-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:677.34,
+    amortSchedule:[{date:'2026-03-31',pct:100}],
+    residualAt:function(){return 100}
+  },
+  X15Y6: {
+    ticker:'X15Y6',name:'BONCER May 15 2026',maturity:'2026-05-15',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:639.78,
+    amortSchedule:[{date:'2026-05-15',pct:100}],
+    residualAt:function(){return 100}
+  },
+  X29Y6: {
+    ticker:'X29Y6',name:'BONCER May 29 2026',maturity:'2026-05-29',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:639.78,
+    amortSchedule:[{date:'2026-05-29',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZX26: {
+    ticker:'TZX26',name:'LECER Jun 2026',maturity:'2026-06-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:597.47,
+    amortSchedule:[{date:'2026-06-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  X31L6: {
+    ticker:'X31L6',name:'BONCER Jul 2026',maturity:'2026-07-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:653.21,
+    amortSchedule:[{date:'2026-07-31',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXO6: {
+    ticker:'TZXO6',name:'LECER Oct 2026',maturity:'2026-10-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:700.00,
+    amortSchedule:[{date:'2026-10-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  X30N6: {
+    ticker:'X30N6',name:'BONCER Nov 2026',maturity:'2026-11-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:668.23,
+    amortSchedule:[{date:'2026-11-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXD6: {
+    ticker:'TZXD6',name:'LECER Dic 2026',maturity:'2026-12-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:717.91,
+    amortSchedule:[{date:'2026-12-31',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXA7: {
+    ticker:'TZXA7',name:'LECER Abr 2027',maturity:'2027-04-30',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:717.91,
+    amortSchedule:[{date:'2027-04-30',pct:100}],
+    residualAt:function(){return 100}
+  },
+  TZXY7: {
+    ticker:'TZXY7',name:'LECER May 2027',maturity:'2027-05-31',
+    couponRate:0,frequency:0,firstCoupon:null,
+    cerBase:717.91,
+    amortSchedule:[{date:'2027-05-31',pct:100}],
+    residualAt:function(){return 100}
+  }
+};
+
+// =====================================================
+// UTILITY FUNCTIONS
+// =====================================================
+function parseDate(s){
+  const [y,m,d]=s.split('-').map(Number);
+  return new Date(y,m-1,d);
+}
+function daysBetween(d1,d2){
+  return Math.round((d2-d1)/(1000*60*60*24));
+}
+// 30/360 day count convention (ISDA)
+function days30_360(d1,d2){
+  let y1=d1.getFullYear(),m1=d1.getMonth()+1,dd1=Math.min(d1.getDate(),30);
+  let y2=d2.getFullYear(),m2=d2.getMonth()+1,dd2=d2.getDate();
+  if(dd1>=30 && dd2===31) dd2=30;
+  return 360*(y2-y1)+30*(m2-m1)+(dd2-dd1);
+}
+function formatDate(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function formatNum(n,dec=2){
+  if(n==null||isNaN(n)) return '--';
+  return n.toLocaleString('es-AR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function formatPct(n,dec=2){
+  if(n==null||isNaN(n)) return '--';
+  return (n*100).toFixed(dec)+'%';
+}
+
+function generateMonthlyDates(first,last,fromDate){
+  const dates=[];
+  let d=parseDate(first);
+  const end=parseDate(last);
+  const from=fromDate?parseDate(fromDate):new Date(2000,0,1);
+  while(d<=end){
+    if(d>from) dates.push(formatDate(d));
+    d=new Date(d.getFullYear(),d.getMonth()+1,d.getDate());
+  }
+  return dates;
+}
+function generateQuarterlyDates(first,last,fromDate){
+  const dates=[];
+  let d=parseDate(first);
+  const end=parseDate(last);
+  const from=fromDate?parseDate(fromDate):new Date(2000,0,1);
+  while(d<=end){
+    if(d>from) dates.push(formatDate(d));
+    d=new Date(d.getFullYear(),d.getMonth()+3,d.getDate());
+  }
+  return dates;
+}
+function generateSemiannualDates(first,last,fromDate){
+  const dates=[];
+  let d=parseDate(first);
+  const end=parseDate(last);
+  const from=fromDate?parseDate(fromDate):new Date(2000,0,1);
+  while(d<=end){
+    if(d>from) dates.push(formatDate(d));
+    d=new Date(d.getFullYear(),d.getMonth()+6,d.getDate());
+  }
+  return dates;
+}
+
+function generateEqualAmort(first,last,freqPerYear){
+  const dates=[];
+  let d=parseDate(first);
+  const end=parseDate(last);
+  while(d<=end){
+    dates.push({date:formatDate(d),pct:0});
+    d=new Date(d.getFullYear(),d.getMonth()+(12/freqPerYear),d.getDate());
+  }
+  const pct=100/dates.length;
+  dates.forEach(x=>x.pct=pct);
+  return dates;
+}
+
+function calcResidual(amortSchedule,dateStr){
+  const d=parseDate(dateStr);
+  let paid=0;
+  for(const a of amortSchedule){
+    if(parseDate(a.date)<=d) paid+=a.pct;
+  }
+  return 100-paid;
+}
+
+// =====================================================
+// CASHFLOW GENERATION (step-up coupon aware)
+// =====================================================
+function generateCashflows(bond, settlementStr){
+  const settlement=parseDate(settlementStr);
+  const flows=[];
+  const allCouponDates=bond.couponDates(null);
+  const amortMap={};
+  for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+
+  let residual=100;
+  for(const a of bond.amortSchedule){
+    if(parseDate(a.date)<=settlement) residual-=a.pct;
+  }
+
+  let runningResidual=residual;
+  let prevCouponDate=bond.firstCoupon;
+  for(const ds of allCouponDates){
+    const dd=parseDate(ds);
+    if(dd<=settlement){prevCouponDate=ds;continue;}
+    const rate=getCouponRate(bond,prevCouponDate);
+    const coupon=runningResidual*(rate/100)/bond.frequency;
+    const amort=amortMap[ds]||0;
+    runningResidual-=amort;
+    const days=daysBetween(settlement,dd);
+    const periods30=days30_360(settlement,dd)/180;
+    flows.push({date:ds,days,periods30,coupon,amort,total:coupon+amort,residualAfter:runningResidual});
+    prevCouponDate=ds;
+  }
+  return {flows, residual};
+}
+
+// =====================================================
+// FINANCIAL CALCULATIONS - Convención 180/360
+// TNA semiannual: PV = sum( CF_i / (1+r)^periods_i )
+// where periods_i = days30_360 / 180
+// TNA = r * 2; TEA = (1+r)^2 - 1
+// =====================================================
+function calcAccruedInterest(bond, settlementStr){
+  const settlement=parseDate(settlementStr);
+  const allDates=bond.couponDates(null);
+  let prevDate=parseDate(bond.firstCoupon);
+  let nextDate=null;
+  let nextDateStr=null;
+  for(const ds of allDates){
+    const d=parseDate(ds);
+    if(d>settlement){nextDate=d;nextDateStr=ds;break;}
+    prevDate=d;
+  }
+  if(!nextDate) return 0;
+  const residual=bond.residualAt(settlementStr);
+  // Use 30/360 for accrued interest
+  const periodDays30=days30_360(prevDate,nextDate);
+  const elapsedDays30=days30_360(prevDate,settlement);
+  const rate=getCouponRate(bond,formatDate(prevDate));
+  const couponAmt=residual*(rate/100)/bond.frequency;
+  return couponAmt*(elapsedDays30/periodDays30);
+}
+
+// Solve for semiannual rate using 30/360 periods (Newton-Raphson)
+function calcTNA_semi(cashflows, dirtyPrice, maxIter=300, tol=1e-12){
+  let r=0.04; // initial guess = semiannual rate
+  for(let i=0;i<maxIter;i++){
+    let pv=0, dpv=0;
+    for(const cf of cashflows){
+      const t=cf.periods30;
+      pv+=cf.total/Math.pow(1+r,t);
+      dpv-=t*cf.total/Math.pow(1+r,t+1);
+    }
+    const f=pv-dirtyPrice;
+    if(Math.abs(f)<tol) break;
+    r=r-f/dpv;
+    if(r<-0.99) r=-0.98;
+    if(r>5) r=4.99;
+  }
+  const TNA=r*2;
+  const TEA=Math.pow(1+r,2)-1;
+  return {TNA, TEA, semiRate:r};
+}
+
+// Modified Duration using semiannual convention
+function calcModDuration_semi(cashflows, dirtyPrice, semiRate){
+  let macDurYears=0;
+  for(const cf of cashflows){
+    const t=cf.periods30;
+    const tYears=t/2; // periods/2 = years
+    macDurYears+=tYears*cf.total/Math.pow(1+semiRate,t);
+  }
+  macDurYears/=dirtyPrice;
+  const modDur=macDurYears/(1+semiRate);
+  return {macDur:macDurYears, modDur};
+}
+
+function calcConvexity_semi(cashflows, dirtyPrice, semiRate){
+  let sum=0;
+  for(const cf of cashflows){
+    const t=cf.periods30;
+    const tYears=t/2;
+    sum+=tYears*(tYears+0.5)*cf.total/Math.pow(1+semiRate,t);
+  }
+  return sum/dirtyPrice;
+}
+
+// =====================================================
+// LECAP RATES (kept for reuse)
+// =====================================================
+function calcLecapRates(price, vf, days){
+  const tna=(vf/price-1)*365/days;
+  const tem=Math.pow(vf/price, 30/days)-1;
+  const tea=Math.pow(1+tem,12)-1;
+  return {tem, tna, tea};
+}
+
+// =====================================================
+// UNIFIED INSTRUMENT SYSTEM
+// =====================================================
+let allInstruments = [];
+let chartDetail = null;
+const defaultSettlement = formatDate(nextBusinessDay(new Date()));
+
+function getSettlement(inst){
+  const plazo = inst.plazo || 1;
+  let d = new Date();
+  for(let i=0;i<plazo;i++){d=nextBusinessDay(d);}
+  return formatDate(d);
+}
+
+// =====================================================
+// BOND METADATA — condiciones de emisión estáticas
+// =====================================================
+const BOND_META = {
+  // Globales (Ley NY)
+  GD29:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 1',isin:'US040114HW26'},
+  GD30:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'US040114HX09'},
+  GD35:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'US040114HY81'},
+  GD38:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'US040114HZ56'},
+  GD41:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'US040114IA05'},
+  GD46:{emisor:'República Argentina',clase:'Bonos Globales',monedaDenom:'USD',monedaPago:'USD',legislacion:'Nueva York',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'US040114IB87'},
+  // Bonares (Ley AR)
+  AL29:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 1',isin:'ARARGE3209S6'},
+  AL30:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'ARARGE320SC6'},
+  AL35:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'ARARGE320SD4'},
+  AL41:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'ARARGE320SF9'},
+  AE38:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Step-up',laminaMin:'US$ 1',isin:'ARARGE320SE2'},
+  AO27:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 1'},
+  AN29:{emisor:'República Argentina',clase:'Bonares',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 1'},
+  // Bopreales
+  BPY26:{emisor:'BCRA',clase:'BOPREAL Serie 3',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 100'},
+  BPOA7:{emisor:'BCRA',clase:'BOPREAL Serie 1A',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 100'},
+  BPOB7:{emisor:'BCRA',clase:'BOPREAL Serie 1B',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 100'},
+  BPOC7:{emisor:'BCRA',clase:'BOPREAL Serie 1C',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 100'},
+  BPOD7:{emisor:'BCRA',clase:'BOPREAL Serie 1D',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Fija',laminaMin:'US$ 100'},
+  BPOB8:{emisor:'BCRA',clase:'BOPREAL Serie 1 Strip',monedaDenom:'USD',monedaPago:'USD',legislacion:'Argentina',convencion:'30/360',tipoCupon:'Zero coupon',laminaMin:'US$ 100'},
+  // LECAPs / BONCAPs
+  S16M6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S17A6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S30A6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S29Y6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  T30J6:{emisor:'Tesoro Nacional',clase:'BONCAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Capitalizable'},
+  S31L6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S31G6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S30O6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  S30N6:{emisor:'Tesoro Nacional',clase:'LECAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  T15E7:{emisor:'Tesoro Nacional',clase:'BONCAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Capitalizable'},
+  T30A7:{emisor:'Tesoro Nacional',clase:'BONCAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Capitalizable'},
+  T31Y7:{emisor:'Tesoro Nacional',clase:'BONCAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Capitalizable'},
+  T30J7:{emisor:'Tesoro Nacional',clase:'BONCAP',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Capitalizable'},
+  // BONCER / LECER
+  TX26:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'30/360',tipoCupon:'CER + spread'},
+  TX28:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'30/360',tipoCupon:'CER + spread'},
+  DICP:{emisor:'República Argentina',clase:'Discount ARS',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'30/360',tipoCupon:'CER + spread',isin:'ARARGE03F441'},
+  TZXM7:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZX27:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXD7:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZX28:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXM6:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  X15Y6:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  X29Y6:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZX26:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  X31L6:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXO6:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  X30N6:{emisor:'Tesoro Nacional',clase:'BONCER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXD6:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXA7:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  TZXY7:{emisor:'Tesoro Nacional',clase:'LECER',monedaDenom:'ARS ajust. CER',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'CER zero coupon'},
+  // USD Linked
+  D30A6:{emisor:'Tesoro Nacional',clase:'Dólar Linked',monedaDenom:'ARS linked USD',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  TZV26:{emisor:'Tesoro Nacional',clase:'LELINK',monedaDenom:'ARS linked USD',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Descuento'},
+  // Duales / Tamar
+  TTM26:{emisor:'Tesoro Nacional',clase:'Dual',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa fija/variable'},
+  M30A6:{emisor:'Tesoro Nacional',clase:'Tamar',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa Tamar'},
+  TTJ26:{emisor:'Tesoro Nacional',clase:'Dual',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa fija/variable'},
+  M31G6:{emisor:'Tesoro Nacional',clase:'Tamar',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa Tamar'},
+  TTS26:{emisor:'Tesoro Nacional',clase:'Dual',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa fija/variable'},
+  TTD26:{emisor:'Tesoro Nacional',clase:'Dual',monedaDenom:'ARS',monedaPago:'ARS',legislacion:'Argentina',convencion:'Actual/365',tipoCupon:'Tasa fija/variable'}
+};
+
+function buildInstruments(){
+  allInstruments = [];
+  const today = new Date();
+  // Panel 1: Soberanos USD
+  // Globales
+  ['GD29','GD30','GD35','GD38','GD41','GD46'].forEach(k=>{
+    const b=BONDS[k];
+    if(b && parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'USD',category:'Globales',calcType:'bond',data:b,bidPx:0,askPx:0,plazo:1});
+  });
+  // Bonares
+  ['AL29','AL30','AL35','AL41','AE38','AO27','AN29'].forEach(k=>{
+    const b=BONDS[k];
+    if(b && parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'USD',category:'Bonares',calcType:'bond',data:b,bidPx:0,askPx:0,plazo:1});
+  });
+  // Bopreales
+  Object.keys(BOPREALES).forEach(k=>{
+    const b=BOPREALES[k];
+    if(parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'USD',category:'Bopreales',calcType:'bond',data:b,bidPx:0,askPx:0,plazo:1});
+  });
+  // Panel 2: Pesos y Ajustables
+  // USD Linked
+  DOLAR_LINKED.forEach(l=>{
+    if(parseDate(l.maturity)>today)
+      allInstruments.push({ticker:l.ticker,name:l.name,panel:'ARS',category:'USD Linked',calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1});
+  });
+  // LECAPs/BONCAPs
+  LECAPS.forEach(l=>{
+    if(parseDate(l.maturity)>today)
+      allInstruments.push({ticker:l.ticker,name:l.name,panel:'ARS',category:'LECAPs/BONCAPs',calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1});
+  });
+  // BONCER/LECER
+  Object.keys(BONCER_BONDS).forEach(k=>{
+    const b=BONCER_BONDS[k];
+    if(parseDate(b.maturity)>today)
+      allInstruments.push({ticker:k,name:b.name,panel:'ARS',category:'BONCER/LECER',calcType:'boncer',data:b,bidPx:0,askPx:0,plazo:1});
+  });
+  // Duales/Tamar
+  DUALES_TAMAR.forEach(l=>{
+    if(parseDate(l.maturity)>today)
+      allInstruments.push({ticker:l.ticker,name:l.name,panel:'ARS',category:'Duales/Tamar',calcType:'lecap',data:l,bidPx:l.price||0,askPx:0,plazo:1});
+  });
+  // Custom instruments from localStorage
+  getCustomInstruments().forEach(c=>{
+    if(parseDate(c.maturity)>today && !allInstruments.find(i=>i.ticker===c.ticker)){
+      let data;
+      const amort=c.amortSchedule&&c.amortSchedule.length?c.amortSchedule:[{date:c.maturity,pct:100}];
+      const freq=c.frequency||2;
+      const monthsPerPeriod=12/freq;
+      if(c.calcType==='bond'){
+        data={ticker:c.ticker,name:c.name,law:'Custom',currency:c.panel==='USD'?'USD':'ARS',
+          couponRate:c.couponRate||0,frequency:freq,maturity:c.maturity,
+          firstCoupon:c.firstCoupon||c.maturity,issueDate:c.issueDate||c.maturity,
+          amortSchedule:amort,
+          residualAt:function(d){let r=100;for(const a of this.amortSchedule){if(parseDate(a.date)<=d)r-=a.pct;}return Math.max(r,0);},
+          couponDates:function(from){const ds=[];let dt=parseDate(this.firstCoupon);const mat=parseDate(this.maturity);while(dt<=mat){if(dt>=from)ds.push(fmt(dt));dt.setMonth(dt.getMonth()+monthsPerPeriod);}return ds;}};
+      } else if(c.calcType==='boncer'){
+        data={ticker:c.ticker,name:c.name,maturity:c.maturity,couponRate:c.couponRate||0,frequency:freq,
+          firstCoupon:c.firstCoupon||c.maturity,cerBase:c.cerBase||600,amortSchedule:amort,
+          residualAt:function(d){let r=100;for(const a of this.amortSchedule){if(parseDate(a.date)<=d)r-=a.pct;}return Math.max(r,0);},
+          couponDates:function(from){const ds=[];let dt=parseDate(this.firstCoupon);const mat=parseDate(this.maturity);while(dt<=mat){if(dt>=from)ds.push(fmt(dt));dt.setMonth(dt.getMonth()+monthsPerPeriod);}return ds;}};
+      } else {
+        data={ticker:c.ticker,name:c.name,maturity:c.maturity,price:c.price||0,vf:c.vf||100,tem:c.tem||0};
+      }
+      allInstruments.push({ticker:c.ticker,name:c.name,panel:c.panel,category:c.category,calcType:c.calcType,data:data,bidPx:0,askPx:0,plazo:1});
+    }
+  });
+}
+
+function getCustomInstruments(){
+  try{return JSON.parse(localStorage.getItem('rfCustomInstruments')||'[]');}catch(e){return [];}
+}
+function saveCustomInstruments(arr){
+  localStorage.setItem('rfCustomInstruments',JSON.stringify(arr));
+}
+function addCustomInstrument(inst){
+  const arr=getCustomInstruments();
+  const idx=arr.findIndex(c=>c.ticker===inst.ticker);
+  if(idx>=0) arr[idx]=inst; else arr.push(inst);
+  saveCustomInstruments(arr);
+}
+function removeCustomInstrument(ticker){
+  saveCustomInstruments(getCustomInstruments().filter(c=>c.ticker!==ticker));
+}
+
+// =====================================================
+// ADMIN PANEL
+// =====================================================
+let _editingTicker = null;
+
+function showAdminPanel(){
+  document.getElementById('adminOverlay').classList.add('open');
+  renderAdminList();
+}
+function closeAdminPanel(){
+  document.getElementById('adminOverlay').classList.remove('open');
+  resetAdminForm();
+}
+function resetAdminForm(){
+  _editingTicker=null;
+  document.getElementById('adminSubmitBtn').textContent='Agregar instrumento';
+  document.getElementById('adminTitle').textContent='Administrar Instrumentos';
+  ['adminTicker','adminName','adminMaturity','adminVf','adminTem','adminCer','adminCoupon',
+   'adminFirstCoupon','adminIssueDate','adminEmisor','adminClase','adminIsin',
+   'adminMonDenom','adminMonPago','adminLeg','adminConv','adminTipoCupon','adminLamina'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('adminType').value='lecap';
+  document.getElementById('adminFreq').value='2';
+  document.getElementById('adminAmortType').value='bullet';
+  document.getElementById('adminAmortN').value='5';
+  document.getElementById('amortTable').querySelector('tbody').innerHTML='';
+  document.getElementById('adminTicker').removeAttribute('readonly');
+  onAdminTypeChange();
+  onAmortTypeChange();
+}
+function onAdminTypeChange(){
+  const t=document.getElementById('adminType').value;
+  const isLecap=t==='lecap'||t==='dualTamar'||t==='usdLinked';
+  const isBoncer=t==='boncer';
+  const isBond=t==='bond';
+  const hasCoupon=isBoncer||isBond;
+  document.getElementById('lbl_vf').style.display=isLecap?'':'none';
+  document.getElementById('lbl_tem').style.display=t==='dualTamar'?'':'none';
+  document.getElementById('lbl_cer').style.display=isBoncer?'':'none';
+  document.getElementById('lbl_coupon').style.display=hasCoupon?'':'none';
+  document.getElementById('lbl_freq').style.display=hasCoupon?'':'none';
+  document.getElementById('lbl_firstCoupon').style.display=hasCoupon?'':'none';
+  document.getElementById('lbl_issueDate').style.display=isBond?'':'none';
+  document.getElementById('lbl_bondPanel').style.display=isBond?'':'none';
+  document.getElementById('lbl_bondCat').style.display=isBond?'':'none';
+  document.getElementById('lbl_amort').style.display=hasCoupon?'':'none';
+}
+function onAmortTypeChange(){
+  const t=document.getElementById('adminAmortType').value;
+  document.getElementById('adminAmortUniform').style.display=t==='uniform'?'':'none';
+  document.getElementById('adminAmortCustom').style.display=t==='custom'?'':'none';
+}
+function addAmortRow(date,pct){
+  const tbody=document.getElementById('amortTable').querySelector('tbody');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="date" value="${date||''}"></td><td><input type="number" step="0.01" value="${pct||''}" placeholder="%"></td><td><button class="btn-act btn-del" onclick="this.closest('tr').remove()" title="Quitar">&times;</button></td>`;
+  tbody.appendChild(tr);
+}
+function getAmortSchedule(){
+  const type=document.getElementById('adminAmortType').value;
+  const maturity=document.getElementById('adminMaturity').value;
+  if(type==='bullet') return [{date:maturity,pct:100}];
+  if(type==='uniform'){
+    const n=parseInt(document.getElementById('adminAmortN').value)||1;
+    const pctEach=+(100/n).toFixed(4);
+    const mDate=parseDate(maturity);
+    const freq=parseInt(document.getElementById('adminFreq').value)||2;
+    const monthsPerPeriod=12/freq;
+    const schedule=[];
+    for(let i=n;i>=1;i--){
+      const d=new Date(mDate);
+      d.setMonth(d.getMonth()-monthsPerPeriod*(i-1));
+      schedule.push({date:fmt(d),pct:i===1?+(100-pctEach*(n-1)).toFixed(4):pctEach});
+    }
+    return schedule;
+  }
+  // custom
+  const rows=document.getElementById('amortTable').querySelectorAll('tbody tr');
+  const schedule=[];
+  rows.forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const d=inputs[0].value;const p=parseFloat(inputs[1].value);
+    if(d&&p>0) schedule.push({date:d,pct:p});
+  });
+  return schedule.length?schedule:[{date:maturity,pct:100}];
+}
+function collectMeta(){
+  return {
+    emisor:document.getElementById('adminEmisor').value.trim(),
+    clase:document.getElementById('adminClase').value.trim(),
+    isin:document.getElementById('adminIsin').value.trim().toUpperCase(),
+    monedaDenom:document.getElementById('adminMonDenom').value.trim(),
+    monedaPago:document.getElementById('adminMonPago').value.trim(),
+    legislacion:document.getElementById('adminLeg').value.trim(),
+    convencion:document.getElementById('adminConv').value.trim(),
+    tipoCupon:document.getElementById('adminTipoCupon').value.trim(),
+    laminaMin:document.getElementById('adminLamina').value.trim()
+  };
+}
+function submitAdminForm(){
+  const type=document.getElementById('adminType').value;
+  const ticker=document.getElementById('adminTicker').value.trim().toUpperCase();
+  const name=document.getElementById('adminName').value.trim();
+  const maturity=document.getElementById('adminMaturity').value;
+  if(!ticker||!name||!maturity){toast('Completar ticker, nombre y vencimiento');return;}
+  if(!_editingTicker && allInstruments.find(i=>i.ticker===ticker)){toast('Ticker ya existe');return;}
+  const typeMap={
+    lecap:{panel:'ARS',category:'LECAPs/BONCAPs',calcType:'lecap'},
+    dualTamar:{panel:'ARS',category:'Duales/Tamar',calcType:'lecap'},
+    usdLinked:{panel:'ARS',category:'USD Linked',calcType:'lecap'},
+    boncer:{panel:'ARS',category:'BONCER/LECER',calcType:'boncer'},
+    bond:{panel:document.getElementById('adminBondPanel').value,category:document.getElementById('adminBondCat').value,calcType:'bond'}
+  };
+  const cfg=typeMap[type];
+  const inst={ticker,name,maturity,panel:cfg.panel,category:cfg.category,calcType:cfg.calcType,meta:collectMeta()};
+  if(type==='boncer'){
+    inst.cerBase=parseFloat(document.getElementById('adminCer').value)||600;
+    inst.couponRate=parseFloat(document.getElementById('adminCoupon').value)||0;
+    inst.frequency=parseInt(document.getElementById('adminFreq').value)||2;
+    inst.firstCoupon=document.getElementById('adminFirstCoupon').value||maturity;
+    inst.amortSchedule=getAmortSchedule();
+  } else if(type==='bond'){
+    inst.couponRate=parseFloat(document.getElementById('adminCoupon').value)||0;
+    inst.frequency=parseInt(document.getElementById('adminFreq').value)||2;
+    inst.firstCoupon=document.getElementById('adminFirstCoupon').value||maturity;
+    inst.issueDate=document.getElementById('adminIssueDate').value||'';
+    inst.amortSchedule=getAmortSchedule();
+  } else {
+    inst.vf=parseFloat(document.getElementById('adminVf').value)||100;
+    inst.price=0;
+    if(type==='dualTamar') inst.tem=parseFloat(document.getElementById('adminTem').value)||0;
+  }
+  addCustomInstrument(inst);
+  rebuildAndRefresh();
+  renderAdminList();
+  const isEdit=!!_editingTicker;
+  resetAdminForm();
+  toast(isEdit?'Instrumento actualizado: '+ticker:'Instrumento agregado: '+ticker);
+}
+function editCustomInstrument(ticker){
+  const arr=getCustomInstruments();
+  const c=arr.find(x=>x.ticker===ticker);
+  if(!c)return;
+  _editingTicker=ticker;
+  document.getElementById('adminSubmitBtn').textContent='Guardar cambios';
+  document.getElementById('adminTitle').textContent='Editar: '+ticker;
+  // Map calcType back to form type
+  const typeFromCalc={lecap:'lecap',boncer:'boncer',bond:'bond'};
+  let formType=typeFromCalc[c.calcType]||'lecap';
+  if(c.calcType==='lecap'){
+    if(c.category==='Duales/Tamar') formType='dualTamar';
+    else if(c.category==='USD Linked') formType='usdLinked';
+  }
+  document.getElementById('adminType').value=formType;
+  onAdminTypeChange();
+  document.getElementById('adminTicker').value=c.ticker;
+  document.getElementById('adminTicker').setAttribute('readonly','readonly');
+  document.getElementById('adminName').value=c.name||'';
+  document.getElementById('adminMaturity').value=c.maturity||'';
+  if(c.vf) document.getElementById('adminVf').value=c.vf;
+  if(c.tem) document.getElementById('adminTem').value=c.tem;
+  if(c.cerBase) document.getElementById('adminCer').value=c.cerBase;
+  if(c.couponRate) document.getElementById('adminCoupon').value=c.couponRate;
+  if(c.frequency) document.getElementById('adminFreq').value=c.frequency;
+  if(c.firstCoupon) document.getElementById('adminFirstCoupon').value=c.firstCoupon;
+  if(c.issueDate) document.getElementById('adminIssueDate').value=c.issueDate;
+  if(formType==='bond'){
+    document.getElementById('adminBondPanel').value=c.panel||'USD';
+    document.getElementById('adminBondCat').value=c.category||'Globales';
+  }
+  // Amort schedule
+  if(c.amortSchedule&&c.amortSchedule.length>0){
+    if(c.amortSchedule.length===1&&c.amortSchedule[0].pct===100){
+      document.getElementById('adminAmortType').value='bullet';
+    } else {
+      document.getElementById('adminAmortType').value='custom';
+      onAmortTypeChange();
+      c.amortSchedule.forEach(a=>addAmortRow(a.date,a.pct));
+    }
+  }
+  onAmortTypeChange();
+  // Metadata
+  if(c.meta){
+    if(c.meta.emisor) document.getElementById('adminEmisor').value=c.meta.emisor;
+    if(c.meta.clase) document.getElementById('adminClase').value=c.meta.clase;
+    if(c.meta.isin) document.getElementById('adminIsin').value=c.meta.isin;
+    if(c.meta.monedaDenom) document.getElementById('adminMonDenom').value=c.meta.monedaDenom;
+    if(c.meta.monedaPago) document.getElementById('adminMonPago').value=c.meta.monedaPago;
+    if(c.meta.legislacion) document.getElementById('adminLeg').value=c.meta.legislacion;
+    if(c.meta.convencion) document.getElementById('adminConv').value=c.meta.convencion;
+    if(c.meta.tipoCupon) document.getElementById('adminTipoCupon').value=c.meta.tipoCupon;
+    if(c.meta.laminaMin) document.getElementById('adminLamina').value=c.meta.laminaMin;
+    // Open metadata section
+    const metaTitle=document.querySelectorAll('.admin-section-title')[1];
+    if(metaTitle&&metaTitle.classList.contains('collapsed')) metaTitle.classList.remove('collapsed');
+  }
+  // Scroll to top
+  document.querySelector('.admin-body').scrollTop=0;
+}
+function deleteCustomInstrumentUI(ticker){
+  if(!confirm('Eliminar '+ticker+'?'))return;
+  removeCustomInstrument(ticker);
+  rebuildAndRefresh();
+  renderAdminList();
+  if(_editingTicker===ticker) resetAdminForm();
+  toast('Instrumento eliminado: '+ticker);
+}
+function rebuildAndRefresh(){
+  const snapshot={};
+  allInstruments.forEach(i=>{snapshot[i.ticker]={bidPx:i.bidPx,askPx:i.askPx,plazo:i.plazo};});
+  buildInstruments();
+  allInstruments.forEach(i=>{
+    const s=snapshot[i.ticker];
+    if(s){i.bidPx=s.bidPx;i.askPx=s.askPx;i.plazo=s.plazo;}
+    recalcRow(i);
+  });
+  renderPanel('tblUSD','USD');
+  renderPanel('tblARS','ARS');
+  const usdCount=allInstruments.filter(i=>i.panel==='USD').length;
+  const arsCount=allInstruments.filter(i=>i.panel==='ARS').length;
+  document.getElementById('countUSD').textContent=usdCount+' instrumentos';
+  document.getElementById('countARS').textContent=arsCount+' instrumentos';
+  renderYieldCharts('USD');renderYieldCharts('ARS');
+}
+function renderAdminList(){
+  const custom=getCustomInstruments();
+  const el=document.getElementById('adminList');
+  if(!custom.length){el.innerHTML='<p style="font-size:.63rem;color:var(--text-light)">No hay instrumentos personalizados.</p>';return;}
+  let h='<table><thead><tr><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Vto</th><th>ISIN</th><th></th></tr></thead><tbody>';
+  custom.forEach(c=>{
+    const expired=parseDate(c.maturity)<=new Date();
+    const isin=c.meta&&c.meta.isin?c.meta.isin:'-';
+    h+=`<tr${expired?' style="opacity:.45"':''}><td><b>${c.ticker}</b></td><td>${c.name}</td><td>${c.category}</td><td>${c.maturity}${expired?' (vdo)':''}</td><td style="font-size:.58rem">${isin}</td><td style="white-space:nowrap"><button class="btn-act btn-edit" onclick="editCustomInstrument('${c.ticker}')" title="Editar">&#9998;</button><button class="btn-act btn-del" onclick="deleteCustomInstrumentUI('${c.ticker}')" title="Eliminar">&times;</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+
+// =====================================================
+// LICITACIÓN FILE IMPORT
+// =====================================================
+if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function extractTextFromPDF(buf){
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return text;
+}
+async function extractTextFromDOCX(buf){
+  const result=await mammoth.extractRawText({arrayBuffer:buf});
+  return result.value;
+}
+async function handleLicitacionFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  const statusEl=document.getElementById('licitStatus');
+  statusEl.style.display='';statusEl.className='licit-status';
+  statusEl.textContent='Procesando '+file.name+'...';
+  try{
+    const buf=await file.arrayBuffer();
+    let text='';
+    if(file.name.endsWith('.pdf')) text=await extractTextFromPDF(buf);
+    else if(file.name.endsWith('.docx')) text=await extractTextFromDOCX(buf);
+    else{statusEl.textContent='Formato no soportado. Use PDF o DOCX.';statusEl.className='licit-status error';return;}
+    const instruments=parseLicitacion(text);
+    if(!instruments.length){
+      statusEl.textContent='No se detectaron instrumentos en el documento.';
+      statusEl.className='licit-status error';
+      showLicitacionRawText(text);
+      return;
+    }
+    statusEl.textContent=instruments.length+' instrumento(s) detectado(s) en '+file.name;
+    showLicitacionReview(instruments,text);
+  }catch(e){
+    statusEl.textContent='Error al procesar: '+e.message;
+    statusEl.className='licit-status error';
+  }
+  input.value='';
+}
+function parseLicitacion(text){
+  const instruments=[];
+  const seen=new Set();
+  // Normalize whitespace
+  const t=text.replace(/\r\n/g,'\n').replace(/[ \t]+/g,' ');
+  // Extract all dates (DD/MM/YYYY)
+  const dateRx=/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g;
+  function toISO(d,m,y){return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  // Ticker patterns with their inferred types
+  const tickerPatterns=[
+    {rx:/\b(S\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS',name:'LECAP'},
+    {rx:/\b(T\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS',name:'BONCAP'},
+    {rx:/\b(TZX[A-Z0-9]{1,3})\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'BONCER'},
+    {rx:/\b(TX[A-Z0-9]{2,4})\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'BONCER'},
+    {rx:/\b(X\d{2}[A-Z]\d)\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'LECER'},
+    {rx:/\b(TT[A-Z]\d{2})\b/g,type:'lecap',cat:'Duales/Tamar',panel:'ARS',name:'Dual'},
+    {rx:/\b(M\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'Duales/Tamar',panel:'ARS',name:'Tamar'},
+    {rx:/\b(D\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'USD Linked',panel:'ARS',name:'USD Linked'},
+    {rx:/\b(TZV[A-Z0-9]{2,3})\b/g,type:'lecap',cat:'USD Linked',panel:'ARS',name:'USD Linked'},
+    {rx:/\b(GD\d{2})\b/g,type:'bond',cat:'Globales',panel:'USD',name:'Global'},
+    {rx:/\b(AL\d{2})\b/g,type:'bond',cat:'Bonares',panel:'USD',name:'Bonar'},
+    {rx:/\b(AE\d{2})\b/g,type:'bond',cat:'Bonares',panel:'USD',name:'Bonar'},
+    {rx:/\b(BP[A-Z0-9]{2,4})\b/g,type:'bond',cat:'Bopreales',panel:'USD',name:'Bopreal'},
+  ];
+  // Keyword-based type override (more specific patterns first)
+  function inferTypeFromContext(ctx){
+    const c=ctx.toLowerCase();
+    if(/boncer|ajust.{0,15}cer|cer\s*\+/i.test(c)) return{type:'boncer',cat:'BONCER/LECER',panel:'ARS'};
+    if(/lecer|letra.{0,15}ajust/i.test(c)) return{type:'boncer',cat:'BONCER/LECER',panel:'ARS'};
+    if(/d[oó]lar.{0,5}link/i.test(c)) return{type:'lecap',cat:'USD Linked',panel:'ARS'};
+    if(/\bdual\b/i.test(c)) return{type:'lecap',cat:'Duales/Tamar',panel:'ARS'};
+    if(/\btamar\b|badlar/i.test(c)) return{type:'lecap',cat:'Duales/Tamar',panel:'ARS'};
+    if(/lecap|letra.{0,15}capitaliz/i.test(c)) return{type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS'};
+    if(/boncap|bono.{0,15}capitaliz/i.test(c)) return{type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS'};
+    return null;
+  }
+  // Find all tickers in text
+  for(const pat of tickerPatterns){
+    let m;
+    pat.rx.lastIndex=0;
+    while((m=pat.rx.exec(t))!==null){
+      const ticker=m[1].toUpperCase();
+      if(seen.has(ticker))continue;
+      if(allInstruments.find(i=>i.ticker===ticker))continue;
+      seen.add(ticker);
+      // Separate backward context (for type inference) from forward context (for data extraction)
+      const backCtx=t.substring(Math.max(0,m.index-120),m.index);
+      const fwdCtx=t.substring(m.index,Math.min(t.length,m.index+250));
+      // Infer type from backward context only (section headers come before the ticker)
+      const ctxType=inferTypeFromContext(backCtx);
+      const calcType=ctxType?ctxType.type:pat.type;
+      const category=ctxType?ctxType.cat:pat.cat;
+      const panel=ctxType?ctxType.panel:pat.panel;
+      // Extract data from forward context (values come after the ticker)
+      let maturity='';
+      let dm;const dRx=/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g;
+      const afterDates=[];
+      while((dm=dRx.exec(fwdCtx))!==null){
+        const iso=toISO(dm[1],dm[2],dm[3]);
+        if(parseDate(iso)>new Date()) afterDates.push(iso);
+      }
+      if(afterDates.length) maturity=afterDates[0];// first future date after ticker
+      // Find VF — look for numbers near "VN", "VF", "valor" patterns (forward context only)
+      let vf=100;
+      const vfMatch=fwdCtx.match(/(?:VN|VF|valor\s*(?:nominal|final|t[eé]cnico))[^\d]{0,10}([\d.,]+)/i);
+      if(vfMatch) vf=parseFloat(vfMatch[1].replace(/\./g,'').replace(',','.'))||100;
+      // Find coupon rate
+      let couponRate=0;
+      const cupMatch=fwdCtx.match(/(?:tasa|cup[oó]n|inter[eé]s)[^\d]{0,15}([\d.,]+)\s*%/i);
+      if(cupMatch) couponRate=parseFloat(cupMatch[1].replace(',','.'))||0;
+      // Find CER base
+      let cerBase=0;
+      const cerMatch=fwdCtx.match(/(?:cer\s*base|coeficiente\s*cer|cer\s*:)[^\d]{0,10}([\d.,]+)/i);
+      if(cerMatch) cerBase=parseFloat(cerMatch[1].replace(/\./g,'').replace(',','.'))||0;
+      // Find frequency
+      let frequency=2;
+      if(/mensual/i.test(fwdCtx)) frequency=12;
+      else if(/trimestral/i.test(fwdCtx)) frequency=4;
+      else if(/\banual\b/i.test(fwdCtx)) frequency=1;
+      // Build instrument name
+      const baseName=ctxType?'':pat.name;
+      const nameFromCtx=ticker;
+      let instName=baseName?baseName+' '+ticker:category.split('/')[0]+' '+ticker;
+      // Build instrument object
+      const inst={ticker,name:instName,maturity,panel,category,calcType};
+      if(calcType==='lecap'){
+        inst.vf=vf;inst.price=0;
+        if(category==='Duales/Tamar'){
+          const temMatch=ctx.match(/tem[^\d]{0,8}([\d.,]+)/i);
+          inst.tem=temMatch?parseFloat(temMatch[1].replace(',','.')):0;
+        }
+      } else if(calcType==='boncer'){
+        inst.cerBase=cerBase||600;
+        inst.couponRate=couponRate;
+        inst.frequency=frequency;
+        inst.firstCoupon=maturity;
+        inst.amortSchedule=[{date:maturity,pct:100}];
+      } else if(calcType==='bond'){
+        inst.couponRate=couponRate;
+        inst.frequency=frequency;
+        inst.firstCoupon=maturity;
+        inst.issueDate='';
+        inst.amortSchedule=[{date:maturity,pct:100}];
+      }
+      inst.meta={emisor:'',clase:category.split('/')[0],monedaDenom:panel==='USD'?'USD':'ARS',monedaPago:panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:calcType==='lecap'?'Actual/365':'30/360',tipoCupon:calcType==='lecap'?'Descuento':couponRate?'Fija':'',isin:'',laminaMin:''};
+      instruments.push(inst);
+    }
+  }
+  return instruments;
+}
+function showLicitacionRawText(text){
+  const el=document.getElementById('licitReview');
+  el.style.display='';
+  el.innerHTML='<div class="admin-section-title">Texto extra&iacute;do del documento</div><div class="licit-raw">'+text.substring(0,3000).replace(/</g,'&lt;')+'</div><div class="licit-actions"><button class="btn-cancel" onclick="closeLicitReview()">Cerrar</button></div>';
+}
+function showLicitacionReview(instruments,rawText){
+  const el=document.getElementById('licitReview');
+  el.style.display='';
+  document.getElementById('manualFormSection').style.display='none';
+  const typeOpts='<option value="lecap">LECAP</option><option value="boncer">BONCER</option><option value="bond">Bono</option>';
+  let h='<div class="licit-review"><table><thead><tr><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Categor&iacute;a</th><th>Vencimiento</th><th>VF/Cup&oacute;n</th><th></th></tr></thead><tbody>';
+  instruments.forEach((inst,i)=>{
+    const valField=inst.calcType==='lecap'?(inst.vf||100):(inst.couponRate||0);
+    const valLabel=inst.calcType==='lecap'?'VF':'Cup%';
+    h+=`<tr data-idx="${i}">`;
+    h+=`<td><input value="${inst.ticker}" data-field="ticker" style="width:60px;text-transform:uppercase"></td>`;
+    h+=`<td><input value="${inst.name}" data-field="name" style="width:120px"></td>`;
+    h+=`<td><select data-field="calcType">${typeOpts.replace('value="'+inst.calcType+'"','value="'+inst.calcType+'" selected')}</select></td>`;
+    h+=`<td><input value="${inst.category}" data-field="category" style="width:90px"></td>`;
+    h+=`<td><input type="date" value="${inst.maturity}" data-field="maturity" style="width:120px"></td>`;
+    h+=`<td><input type="number" step="0.01" value="${valField}" data-field="valField" style="width:60px" title="${valLabel}"></td>`;
+    h+=`<td><button class="btn-row-del" onclick="this.closest('tr').remove()" title="Quitar">&times;</button></td>`;
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<details style="margin-top:.3rem"><summary style="font-size:.58rem;color:var(--text-light);cursor:pointer">Ver texto extra&iacute;do</summary><div class="licit-raw">'+rawText.substring(0,3000).replace(/</g,'&lt;')+'</div></details>';
+  h+='<div class="licit-actions">';
+  h+='<button class="btn-cancel" onclick="closeLicitReview()">Cancelar</button>';
+  h+='<button class="btn-import" onclick="importLicitacionInstruments()">Importar '+instruments.length+' instrumento(s)</button>';
+  h+='</div>';
+  el.innerHTML=h;
+  // Store parsed data for import
+  el._parsedInstruments=instruments;
+}
+function closeLicitReview(){
+  const el=document.getElementById('licitReview');
+  el.style.display='none';el.innerHTML='';
+  document.getElementById('manualFormSection').style.display='';
+  document.getElementById('licitStatus').style.display='none';
+}
+function importLicitacionInstruments(){
+  const el=document.getElementById('licitReview');
+  const rows=el.querySelectorAll('tbody tr');
+  const originals=el._parsedInstruments||[];
+  let count=0;
+  rows.forEach(tr=>{
+    const idx=parseInt(tr.dataset.idx);
+    const orig=originals[idx]||{};
+    const ticker=tr.querySelector('[data-field="ticker"]').value.trim().toUpperCase();
+    const name=tr.querySelector('[data-field="name"]').value.trim();
+    const calcType=tr.querySelector('[data-field="calcType"]').value;
+    const category=tr.querySelector('[data-field="category"]').value.trim();
+    const maturity=tr.querySelector('[data-field="maturity"]').value;
+    const valField=parseFloat(tr.querySelector('[data-field="valField"]').value)||0;
+    if(!ticker||!maturity)return;
+    // Build instrument using original parsed data as base
+    const inst=Object.assign({},orig,{ticker,name:name||ticker,maturity,category,calcType});
+    // Infer panel from category
+    if(['Globales','Bonares','Bopreales'].includes(category)) inst.panel='USD';
+    else inst.panel='ARS';
+    // Set val field based on type
+    if(calcType==='lecap'){inst.vf=valField||100;inst.price=0;delete inst.couponRate;delete inst.cerBase;}
+    else if(calcType==='boncer'){inst.couponRate=valField;inst.cerBase=orig.cerBase||600;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];delete inst.vf;}
+    else if(calcType==='bond'){inst.couponRate=valField;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.issueDate=orig.issueDate||'';inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];delete inst.vf;}
+    if(!inst.meta) inst.meta={emisor:'',clase:category.split('/')[0],monedaDenom:inst.panel==='USD'?'USD':'ARS',monedaPago:inst.panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:calcType==='lecap'?'Actual/365':'30/360',tipoCupon:'',isin:'',laminaMin:''};
+    addCustomInstrument(inst);
+    count++;
+  });
+  if(count){
+    rebuildAndRefresh();
+    renderAdminList();
+    toast(count+' instrumento(s) importado(s)');
+  }
+  closeLicitReview();
+}
+
+// =====================================================
+// RECALCULATION ENGINE
+// =====================================================
+function recalcRow(inst){
+  const s = getSettlement(inst);
+  const settlement = parseDate(s);
+  const maturity = parseDate(inst.data.maturity);
+  const dtm = daysBetween(settlement, maturity);
+  inst.dtm = dtm > 0 ? dtm : 0;
+  inst.bidTNA=NaN; inst.askTNA=NaN; inst.duration=NaN; inst.parity=NaN; inst.bidTIR=NaN; inst.bidTEM=NaN;
+
+  if(dtm <= 0) return;
+
+  if(inst.calcType === 'bond'){
+    recalcBond(inst, s);
+  } else if(inst.calcType === 'lecap'){
+    recalcLecap(inst, s);
+  } else if(inst.calcType === 'boncer'){
+    recalcBoncer(inst, s);
+  }
+}
+
+function recalcBond(inst, settlementStr){
+  const bond = inst.data;
+  const bidPx = inst.bidPx;
+  const askPx = inst.askPx;
+  if(bidPx > 0){
+    try {
+      const {flows, residual} = generateCashflows(bond, settlementStr);
+      if(flows.length === 0) return;
+      const accr = calcAccruedInterest(bond, settlementStr);
+      const dirty = bidPx + accr;
+      const techValue = residual + accr;
+      inst.parity = (dirty / techValue) * 100;
+      const {TNA, TEA, semiRate} = calcTNA_semi(flows, dirty);
+      const {modDur} = calcModDuration_semi(flows, dirty, semiRate);
+      inst.bidTNA = TNA;
+      inst.bidTIR = TEA;
+      inst.bidTEM = Math.pow(1+TEA, 1/12)-1;
+      inst.duration = modDur;
+      inst._flows = flows;
+      inst._accr = accr;
+      inst._residual = residual;
+    } catch(e){}
+  }
+  if(askPx > 0){
+    try {
+      const {flows} = generateCashflows(bond, settlementStr);
+      if(flows.length === 0) return;
+      const accr = calcAccruedInterest(bond, settlementStr);
+      const dirty = askPx + accr;
+      const {TNA} = calcTNA_semi(flows, dirty);
+      inst.askTNA = TNA;
+    } catch(e){}
+  }
+}
+
+function recalcLecap(inst, settlementStr){
+  const d = inst.data;
+  const settlement = parseDate(settlementStr);
+  const maturity = parseDate(d.maturity);
+  const days = daysBetween(settlement, maturity);
+  if(days <= 0) return;
+  const vf = d.vf || 100;
+  if(inst.bidPx > 0){
+    const {tna, tem, tea} = calcLecapRates(inst.bidPx, vf, days);
+    inst.bidTNA = tna;
+    inst.bidTIR = tea;
+    inst.bidTEM = tem;
+    inst.duration = days / 365;
+    inst.parity = (inst.bidPx / vf) * 100;
+  }
+  if(inst.askPx > 0){
+    const {tna} = calcLecapRates(inst.askPx, vf, days);
+    inst.askTNA = tna;
+  }
+}
+
+function recalcBoncer(inst, settlementStr){
+  const bond = inst.data;
+  const settlement = parseDate(settlementStr);
+  const maturity = parseDate(bond.maturity);
+  const cerNow = getCER(settlementStr);
+  const cerRatio = cerNow / bond.cerBase;
+  const residual = bond.residualAt(settlementStr);
+  if(inst.bidPx <= 0) return;
+
+  if(bond.couponRate === 0){
+    const realDirty = inst.bidPx / cerRatio;
+    const vtCapital = residual * cerRatio;
+    inst.parity = (inst.bidPx / vtCapital) * 100;
+    const periods30 = days30_360(settlement, maturity) / 180;
+    if(periods30 <= 0) return;
+    const semiRate = Math.pow(residual / realDirty, 1/periods30) - 1;
+    inst.bidTNA = semiRate * 2;
+    inst.bidTIR = Math.pow(1+semiRate,2)-1;
+    inst.bidTEM = Math.pow(1+inst.bidTIR, 1/12)-1;
+    inst.duration = (periods30/2)/(1+semiRate);
+  } else {
+    const flows = [];
+    const couponDates = generateSemiannualDates(bond.firstCoupon, bond.maturity, null);
+    const amortMap = {};
+    for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+    let runRes = residual;
+    for(const ds of couponDates){
+      const dd = parseDate(ds);
+      if(dd <= settlement) continue;
+      const coupon = runRes*(bond.couponRate/100)/bond.frequency;
+      const amort = amortMap[ds]||0;
+      runRes -= amort;
+      const days = daysBetween(settlement, dd);
+      const periods30 = days30_360(settlement, dd)/180;
+      flows.push({date:ds,days,periods30,coupon,amort,total:coupon+amort,residualAfter:runRes});
+    }
+    if(flows.length === 0) return;
+    const realDirty = inst.bidPx / cerRatio;
+    const vtARS = residual * cerRatio;
+    inst.parity = (inst.bidPx / vtARS) * 100;
+    const {TNA, TEA, semiRate} = calcTNA_semi(flows, realDirty);
+    const {modDur} = calcModDuration_semi(flows, realDirty, semiRate);
+    inst.bidTNA = TNA;
+    inst.bidTIR = TEA;
+    inst.bidTEM = Math.pow(1+TEA, 1/12)-1;
+    inst.duration = modDur;
+    inst._flows = flows;
+  }
+  if(inst.askPx > 0){
+    if(bond.couponRate === 0){
+      const realDirty = inst.askPx / cerRatio;
+      const periods30 = days30_360(settlement, maturity) / 180;
+      if(periods30 > 0){
+        const semiRate = Math.pow(residual / realDirty, 1/periods30) - 1;
+        inst.askTNA = semiRate * 2;
+      }
+    }
+  }
+}
+
+// Inverse: TNA → Price (Newton-Raphson for bonds)
+function priceFromTNA(inst, tna){
+  const s = getSettlement(inst);
+  if(inst.calcType === 'bond'){
+    const bond = inst.data;
+    const {flows} = generateCashflows(bond, s);
+    if(flows.length === 0) return 0;
+    const semiRate = tna / 2;
+    let pv = 0;
+    for(const cf of flows) pv += cf.total / Math.pow(1+semiRate, cf.periods30);
+    const accr = calcAccruedInterest(bond, s);
+    return pv - accr;
+  } else if(inst.calcType === 'lecap'){
+    const d = inst.data;
+    const days = daysBetween(parseDate(s), parseDate(d.maturity));
+    if(days <= 0) return 0;
+    const vf = d.vf || 100;
+    return vf / (1 + tna * days / 365);
+  } else if(inst.calcType === 'boncer'){
+    const bond = inst.data;
+    const cerNow = getCER(s);
+    const cerRatio = cerNow / bond.cerBase;
+    const settlement = parseDate(s);
+    const maturity = parseDate(bond.maturity);
+    const residual = bond.residualAt(s);
+    if(bond.couponRate === 0){
+      const periods30 = days30_360(settlement, maturity) / 180;
+      const semiRate = tna / 2;
+      const realDirty = residual / Math.pow(1+semiRate, periods30);
+      return realDirty * cerRatio;
+    }
+  }
+  return 0;
+}
+
+// =====================================================
+// RENDERING
+// =====================================================
+function getTagClass(inst){
+  if(inst.category==='Globales'||inst.category==='Bonares'||inst.category==='Bopreales') return 'tag-usd';
+  if(inst.category==='BONCER/LECER') return 'tag-cer';
+  if(inst.category==='USD Linked') return 'tag-dl';
+  if(inst.category==='Duales/Tamar') return 'tag-dual';
+  return 'tag-ars';
+}
+
+function renderPanel(tableId, panelFilter){
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  const items = allInstruments.filter(i=>i.panel===panelFilter);
+  // Sort within each category by duration ascending
+  const catOrder = {};
+  let ci = 0;
+  for(const inst of items){ if(!(inst.category in catOrder)) catOrder[inst.category]=ci++; }
+  items.sort((a,b)=>{
+    const cd = catOrder[a.category] - catOrder[b.category];
+    if(cd !== 0) return cd;
+    const da = (typeof a.duration==='number' && isFinite(a.duration) && a.duration>0) ? a.duration : (a.dtm||99999)/365;
+    const db = (typeof b.duration==='number' && isFinite(b.duration) && b.duration>0) ? b.duration : (b.dtm||99999)/365;
+    return da - db;
+  });
+  let html = '';
+  let lastCat = '';
+  for(const inst of items){
+    if(inst.category !== lastCat){
+      lastCat = inst.category;
+      html += `<tr class="cat-header" data-cat="${lastCat}" onclick="toggleCategory(this)"><td colspan="11"><span class="cat-toggle">&#9660;</span>${lastCat}</td></tr>`;
+    }
+    const id = inst.ticker;
+    const fv = (v,d=2) => (!v||isNaN(v)) ? '' : (v*100).toFixed(d);
+    const fn = (v,d=2) => (!v||isNaN(v)) ? '' : v.toFixed(d);
+    const lp = inst.lastPx > 0 ? (inst.lastPx >= 1000 ? formatNum(inst.lastPx,0) : formatNum(inst.lastPx,2)) : '';
+    html += `<tr data-ticker="${id}" onclick="showDetail('${id}')" style="cursor:pointer">`;
+    html += `<td>${inst.dtm||''}</td>`;
+    html += `<td style="font-weight:700;cursor:pointer" ondblclick="event.stopPropagation();showBondInfo('${id}')">${id}</td>`;
+    html += `<td><span class="last-px" title="Click para copiar a Bid" onclick="event.stopPropagation();copyLastToBid('${id}')">${lp}</span></td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidPx" type="number" step="0.01" value="${inst.bidPx||''}" onclick="event.stopPropagation()"></td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="askPx" type="number" step="0.01" value="${inst.askPx||''}" onclick="event.stopPropagation()"></td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidTNA" type="number" step="0.01" value="${fv(inst.bidTNA)}" onclick="event.stopPropagation()"></td>`;
+    html += `<td>${fv(inst.askTNA)}</td>`;
+    html += `<td>${fn(inst.duration)}</td>`;
+    html += `<td>${fv(inst.bidTIR)}</td>`;
+    html += `<td>${fv(inst.bidTEM)}</td>`;
+    html += `<td><input class="cell-input w40" data-ticker="${id}" data-field="plazo" type="number" step="1" value="${inst.plazo||0}" onclick="event.stopPropagation()"></td>`;
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+  // Attach events + Excel-like navigation
+  tbody.querySelectorAll('.cell-input').forEach(inp=>{
+    inp.addEventListener('change', onCellChange);
+    inp.addEventListener('keydown', cellNav);
+    inp.addEventListener('focus', function(){ this.select(); });
+  });
+}
+
+function cellNav(e){
+  const inp = e.target;
+  const td = inp.closest('td');
+  const tr = td.closest('tr');
+  const tbody = tr.closest('tbody');
+  // Get all editable inputs in the table (skip cat-header rows)
+  const allInputs = Array.from(tbody.querySelectorAll('.cell-input'));
+  const idx = allInputs.indexOf(inp);
+  if(idx < 0) return;
+  // Count inputs per row
+  const rowInputs = Array.from(tr.querySelectorAll('.cell-input'));
+  const colIdx = rowInputs.indexOf(inp);
+  const colCount = rowInputs.length;
+
+  let target = null;
+  if(e.key === 'Enter' || e.key === 'ArrowDown'){
+    e.preventDefault();
+    // Move down: find input at same column in next data row
+    let nextRow = tr.nextElementSibling;
+    while(nextRow && !nextRow.querySelector('.cell-input')) nextRow = nextRow.nextElementSibling;
+    if(nextRow){
+      const nextInputs = Array.from(nextRow.querySelectorAll('.cell-input'));
+      target = nextInputs[Math.min(colIdx, nextInputs.length-1)];
+    }
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    let prevRow = tr.previousElementSibling;
+    while(prevRow && !prevRow.querySelector('.cell-input')) prevRow = prevRow.previousElementSibling;
+    if(prevRow){
+      const prevInputs = Array.from(prevRow.querySelectorAll('.cell-input'));
+      target = prevInputs[Math.min(colIdx, prevInputs.length-1)];
+    }
+  } else if(e.key === 'Tab'){
+    e.preventDefault();
+    if(e.shiftKey){
+      target = allInputs[idx-1] || allInputs[allInputs.length-1];
+    } else {
+      target = allInputs[idx+1] || allInputs[0];
+    }
+  } else if(e.key === 'ArrowRight'){
+    e.preventDefault();
+    const next = rowInputs[colIdx+1];
+    if(next) target = next;
+    else {
+      let nextRow = tr.nextElementSibling;
+      while(nextRow && !nextRow.querySelector('.cell-input')) nextRow = nextRow.nextElementSibling;
+      if(nextRow) target = nextRow.querySelector('.cell-input');
+    }
+  } else if(e.key === 'ArrowLeft'){
+    e.preventDefault();
+    const prev = rowInputs[colIdx-1];
+    if(prev) target = prev;
+    else {
+      let prevRow = tr.previousElementSibling;
+      while(prevRow && !prevRow.querySelector('.cell-input')) prevRow = prevRow.previousElementSibling;
+      if(prevRow){
+        const pi = Array.from(prevRow.querySelectorAll('.cell-input'));
+        target = pi[pi.length-1];
+      }
+    }
+  } else if(e.key === 'Escape'){
+    inp.blur();
+    return;
+  }
+  if(target){
+    // Commit current value before moving
+    if(inp.value !== inp.defaultValue) inp.dispatchEvent(new Event('change'));
+    target.focus();
+  }
+}
+
+function onCellChange(e){
+  const ticker = e.target.dataset.ticker;
+  const field = e.target.dataset.field;
+  const inst = allInstruments.find(i=>i.ticker===ticker);
+  if(!inst) return;
+
+  if(field === 'bidPx'){
+    inst.bidPx = parseFloat(e.target.value) || 0;
+    recalcRow(inst);
+    updateRowDOM(inst);
+  } else if(field === 'askPx'){
+    inst.askPx = parseFloat(e.target.value) || 0;
+    recalcRow(inst);
+    updateRowDOM(inst);
+  } else if(field === 'bidTNA'){
+    const tnaInput = parseFloat(e.target.value) / 100;
+    if(!isNaN(tnaInput)){
+      const newPrice = priceFromTNA(inst, tnaInput);
+      if(newPrice > 0){
+        inst.bidPx = Math.round(newPrice*100)/100;
+        recalcRow(inst);
+        updateRowDOM(inst);
+      }
+    }
+  } else if(field === 'plazo'){
+    inst.plazo = parseInt(e.target.value) || 0;
+    recalcRow(inst);
+    updateRowDOM(inst);
+  }
+  updateYieldCharts();
+  autoSave();
+}
+
+let _autoSaveTimer = null;
+function autoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(()=>{ saveCurrentView(); }, 1000);
+}
+
+function updateRowDOM(inst){
+  const row = document.querySelector(`tr[data-ticker="${inst.ticker}"]`);
+  if(!row) return;
+  const fv = (v,d=2) => (!v||isNaN(v)) ? '' : (v*100).toFixed(d);
+  const fn = (v,d=2) => (!v||isNaN(v)) ? '' : v.toFixed(d);
+  const cells = row.querySelectorAll('td');
+  cells[0].textContent = inst.dtm || '';
+  // cell 1 = ticker, cell 2 = Last Px (updated by updateAllLastPx)
+  const bidPxInput = row.querySelector('[data-field="bidPx"]');
+  if(bidPxInput && document.activeElement !== bidPxInput) bidPxInput.value = inst.bidPx || '';
+  const bidTNAInput = row.querySelector('[data-field="bidTNA"]');
+  if(bidTNAInput && document.activeElement !== bidTNAInput) bidTNAInput.value = fv(inst.bidTNA);
+  cells[6].textContent = fv(inst.askTNA);
+  cells[7].textContent = fn(inst.duration);
+  cells[8].textContent = fv(inst.bidTIR);
+  cells[9].textContent = fv(inst.bidTEM);
+}
+
+function copyLastToBid(ticker){
+  const inst = allInstruments.find(i=>i.ticker===ticker);
+  if(!inst || !inst.lastPx) return;
+  inst.bidPx = inst.lastPx;
+  recalcRow(inst);
+  updateRowDOM(inst);
+}
+
+// =====================================================
+// DETAIL PANEL
+// =====================================================
+function showDetail(ticker){
+  const inst = allInstruments.find(i=>i.ticker===ticker);
+  if(!inst) return;
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('active');
+  document.getElementById('detailTitle').textContent = `${inst.ticker} - ${inst.name}`;
+
+  let metricsHtml = '';
+  const add = (label,val,sub,cls='')=>{metricsHtml+=`<div class="metric ${cls}"><div class="label">${label}</div><div class="value">${val}</div><div class="sub">${sub}</div></div>`;};
+  const fv = (v) => (!v||isNaN(v)) ? '--' : (v*100).toFixed(2)+'%';
+  const fn = (v,d=2) => (!v||isNaN(v)) ? '--' : v.toFixed(d);
+
+  add('TNA', fv(inst.bidTNA), 'Bid', '');
+  add('TIR (TEA)', fv(inst.bidTIR), 'Anual', 'green');
+  add('TEM', fv(inst.bidTEM), 'Mensual', '');
+  add('Duration', fn(inst.duration), 'Mod. (años)', 'orange');
+  add('Paridad', fn(inst.parity,1)+'%', '% VT', '');
+  add('Días Vto', inst.dtm||'--', 'al vencimiento', '');
+
+  if(inst.calcType==='bond' && inst._accr !== undefined){
+    add('Int. Corridos', fn(inst._accr), 'c/100 VN', 'green');
+    add('Residual', fn(inst._residual)+'%', 'VN remanente', '');
+  }
+  document.getElementById('detailMetrics').innerHTML = metricsHtml;
+
+  // Cashflow table
+  let cfHtml = '';
+  if(inst.calcType==='bond' && inst._flows){
+    cfHtml = '<table><thead><tr><th>Fecha</th><th>Días</th><th>Cupón</th><th>Amort</th><th>Total</th><th>VR</th></tr></thead><tbody>';
+    let tc=0,ta=0,tt=0;
+    for(const f of inst._flows){
+      tc+=f.coupon;ta+=f.amort;tt+=f.total;
+      cfHtml+=`<tr><td>${f.date}</td><td>${f.days}</td><td>${fn(f.coupon)}</td><td>${fn(f.amort)}</td><td><b>${fn(f.total)}</b></td><td>${fn(f.residualAfter)}</td></tr>`;
+    }
+    cfHtml+=`<tr style="background:#f1f5f9;font-weight:700"><td>TOTAL</td><td></td><td>${fn(tc)}</td><td>${fn(ta)}</td><td>${fn(tt)}</td><td></td></tr></tbody></table>`;
+  }
+  document.getElementById('detailCashflows').innerHTML = cfHtml;
+
+  // Chart
+  if(inst._flows && inst._flows.length > 0){
+    const ctx = document.getElementById('chartDetail').getContext('2d');
+    if(chartDetail) chartDetail.destroy();
+    chartDetail = new Chart(ctx,{type:'bar',data:{
+      labels:inst._flows.map(f=>f.date),
+      datasets:[
+        {label:'Cupón',data:inst._flows.map(f=>f.coupon),backgroundColor:'rgba(49,130,206,.7)',borderRadius:2},
+        {label:'Amort',data:inst._flows.map(f=>f.amort),backgroundColor:'rgba(56,161,105,.7)',borderRadius:2}
+      ]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:`Flujo de Fondos - ${inst.ticker}`,font:{size:12}}},scales:{x:{ticks:{maxTicksLimit:12}},y:{title:{display:true,text:'c/100 VN'}}}}});
+  }
+}
+
+function closeDetail(){
+  document.getElementById('detailPanel').classList.remove('active');
+}
+
+// =====================================================
+// BOND INFO PANEL (doble click → condiciones de emisión)
+// =====================================================
+function showBondInfo(ticker){
+  const inst = allInstruments.find(i=>i.ticker===ticker);
+  if(!inst) return;
+  const d = inst.data;
+  const customInst = getCustomInstruments().find(x=>x.ticker===ticker);
+  const m = BOND_META[ticker] || (customInst && customInst.meta) || {};
+  const fmt = (v,dec=2) => (v!=null && isFinite(v)) ? v.toFixed(dec) : '-';
+  const fmtDate = (s) => {
+    if(!s) return '-';
+    const p = s.split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  };
+  const freqLabel = {0:'Sin cupón',1:'Anual',2:'Semestral',4:'Trimestral',12:'Mensual'};
+
+  // Dynamic fields
+  const settlement = getSettlement(inst);
+  let residualPct = '-', accr = '-', vt = '-';
+  let ultimoPago = '-', diasCorridos = '-', proxPago = '-', diasRemanentes = '-';
+
+  if(inst.calcType === 'bond' || inst.calcType === 'boncer'){
+    const bond = d;
+    if(bond.residualAt) residualPct = fmt(bond.residualAt(settlement),2) + '%';
+    if(inst._accr != null && isFinite(inst._accr)) accr = fmt(inst._accr, 4);
+    if(inst._residual != null && isFinite(inst._residual)){
+      const vtVal = inst._residual + (inst._accr || 0);
+      vt = fmt(vtVal, 4);
+    }
+    // Find last and next coupon/amort dates
+    if(bond.amortSchedule){
+      const sd = parseDate(settlement);
+      let lastD = null, nextD = null;
+      // Combine coupon dates and amort dates
+      const allDates = [];
+      if(bond.couponDates){
+        const cds = bond.couponDates('2020-01-01');
+        for(const cd of cds) allDates.push(cd);
+      }
+      for(const a of bond.amortSchedule) allDates.push(a.date);
+      const unique = [...new Set(allDates)].sort();
+      for(const dt of unique){
+        const pd = parseDate(dt);
+        if(pd <= sd && (!lastD || pd > parseDate(lastD))) lastD = dt;
+        if(pd > sd && (!nextD || pd < parseDate(nextD))) nextD = dt;
+      }
+      if(lastD){
+        ultimoPago = fmtDate(lastD);
+        diasCorridos = Math.round((sd - parseDate(lastD))/(1000*60*60*24));
+      }
+      if(nextD){
+        proxPago = fmtDate(nextD);
+        diasRemanentes = Math.round((parseDate(nextD) - sd)/(1000*60*60*24));
+      }
+    }
+  } else if(inst.calcType === 'lecap'){
+    residualPct = '100%';
+    vt = d.vf ? fmt(d.vf,2) : '-';
+  }
+
+  // Current coupon rate
+  let tasaActual = '-';
+  if(d.couponSchedule){
+    const today = new Date().toISOString().slice(0,10);
+    for(const s of d.couponSchedule){
+      if(today >= s.from && today < s.to) tasaActual = fmt(s.rate,3) + '% anual';
+    }
+  } else if(d.couponRate != null && d.couponRate > 0){
+    tasaActual = fmt(d.couponRate,3) + '% anual';
+  } else if(d.tem){
+    tasaActual = fmt(d.tem*100,2) + '% mensual';
+  }
+
+  // Build rows
+  const rows = [];
+  function section(t){ rows.push({section:t}); }
+  function row(label, val){ if(val && val !== '-' && val !== 'undefined') rows.push({label, val}); }
+
+  section('Datos de la Emisión');
+  row('Emisor', m.emisor);
+  row('Clase', m.clase);
+  row('Ticker', ticker);
+  row('ISIN', m.isin);
+  row('Fecha emisión', fmtDate(d.issueDate));
+  row('Fecha vencimiento', fmtDate(d.maturity));
+  row('Moneda denominación', m.monedaDenom);
+  row('Moneda de pago', m.monedaPago);
+  row('Legislación', m.legislacion);
+  row('Lámina mínima', m.laminaMin);
+
+  section('Estructura del Cupón');
+  row('Convención intereses', m.convencion);
+  row('Periodicidad', freqLabel[d.frequency] || (d.frequency ? d.frequency+'/año' : 'N/A'));
+  row('Tipo de cupón', m.tipoCupon);
+  row('Tasa de interés', tasaActual);
+  if(d.couponSchedule){
+    row('Esquema step-up', d.couponSchedule.length + ' tramos');
+  }
+
+  section('Valores Calculados');
+  row('Paridad', inst.parity ? fmt(inst.parity,2)+'%' : null);
+  row('Int. corridos c/VN 100', accr);
+  row('Valor técnico c/VN 100', vt);
+  row('Residual', residualPct);
+
+  section('Fechas de Pago');
+  row('Último pago realizado', ultimoPago);
+  row('Días corridos', diasCorridos);
+  row('Próximo pago', proxPago);
+  row('Días remanentes', diasRemanentes);
+
+  // Render
+  let html = '';
+  for(const r of rows){
+    if(r.section){
+      html += `<tr class="section-title"><td colspan="2">${r.section}</td></tr>`;
+    } else {
+      html += `<tr><td>${r.label}</td><td>${r.val}</td></tr>`;
+    }
+  }
+  document.getElementById('bondInfoTitle').textContent = ticker;
+  document.getElementById('bondInfoSub').textContent = inst.name;
+  document.getElementById('bondInfoTable').querySelector('tbody').innerHTML = html;
+  document.getElementById('bondInfoPanel').classList.add('open');
+  document.getElementById('bondInfoOverlay').classList.add('open');
+}
+
+function closeBondInfo(){
+  document.getElementById('bondInfoPanel').classList.remove('open');
+  document.getElementById('bondInfoOverlay').classList.remove('open');
+}
+
+// =====================================================
+// COLLAPSE TOGGLES
+// =====================================================
+function toggleCategory(headerRow){
+  headerRow.classList.toggle('collapsed');
+  let row = headerRow.nextElementSibling;
+  while(row && !row.classList.contains('cat-header')){
+    row.style.display = headerRow.classList.contains('collapsed') ? 'none' : '';
+    row = row.nextElementSibling;
+  }
+}
+
+function toggleChart(card){
+  card.classList.toggle('collapsed');
+}
+
+// =====================================================
+// UI HELPERS
+// =====================================================
+function switchTab(panel){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tabBtn'+panel).classList.add('active');
+  document.getElementById('pane'+panel).classList.add('active');
+  closeDetail();
+  updateYieldCharts(panel);
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+function updateClock(){
+  document.getElementById('clock').textContent=new Date().toLocaleString('es-AR',{dateStyle:'medium',timeStyle:'medium'});
+}
+
+// =====================================================
+// RESIZERS: grid split, column widths, chart heights
+// =====================================================
+(function(){
+  let drag = null; // {type, ...}
+
+  document.addEventListener('mousedown', function(e){
+    // 1. Grid resizer (table vs charts)
+    const gr = e.target.closest('.grid-resizer');
+    if(gr){
+      e.preventDefault();
+      drag = {type:'grid', grid: gr.parentElement};
+      gr.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      return;
+    }
+    // 2. Column resizer (th borders)
+    const tr = e.target.closest('.th-resizer');
+    if(tr){
+      e.preventDefault();
+      const th = tr.parentElement;
+      drag = {type:'col', th, startX: e.clientX, startW: th.offsetWidth};
+      tr.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      return;
+    }
+    // 3. Chart height resizer
+    const chr = e.target.closest('.chart-h-resizer');
+    if(chr){
+      e.preventDefault();
+      const container = chr.previousElementSibling;
+      drag = {type:'chartH', container, handle: chr, startY: e.clientY, startH: container.offsetHeight};
+      chr.classList.add('active');
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      return;
+    }
+  });
+
+  document.addEventListener('mousemove', function(e){
+    if(!drag) return;
+    if(drag.type === 'grid'){
+      const grid = drag.grid;
+      const rect = grid.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const totalW = rect.width;
+      const tableW = Math.max(300, Math.min(x - 3, totalW - 200 - 6));
+      const chartsW = totalW - tableW - 6;
+      grid.style.gridTemplateColumns = tableW + 'px 6px ' + chartsW + 'px';
+      for(const c of grid.querySelectorAll('canvas')){
+        const ch = Chart.getChart(c);
+        if(ch) ch.resize();
+      }
+    } else if(drag.type === 'col'){
+      const delta = e.clientX - drag.startX;
+      const newW = Math.max(30, drag.startW + delta);
+      drag.th.style.width = newW + 'px';
+    } else if(drag.type === 'chartH'){
+      const delta = e.clientY - drag.startY;
+      const newH = Math.max(80, drag.startH + delta);
+      drag.container.style.height = newH + 'px';
+      const canvas = drag.container.querySelector('canvas');
+      if(canvas){ const ch = Chart.getChart(canvas); if(ch) ch.resize(); }
+    }
+  });
+
+  document.addEventListener('mouseup', function(){
+    if(!drag) return;
+    if(drag.type === 'grid'){
+      drag.grid.querySelectorAll('.grid-resizer').forEach(r=>r.classList.remove('active'));
+      const cols = drag.grid.style.gridTemplateColumns;
+      // gridSplit now saved via profile system
+    } else if(drag.type === 'col'){
+      drag.th.querySelector('.th-resizer')?.classList.remove('active');
+    } else if(drag.type === 'chartH'){
+      drag.handle.classList.remove('active');
+    }
+    drag = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // Add column resize handles on load
+  window.addEventListener('DOMContentLoaded', function(){
+    // Add column resize handles to all th
+    document.querySelectorAll('.panel-body th').forEach(th=>{
+      const handle = document.createElement('div');
+      handle.className = 'th-resizer';
+      th.appendChild(handle);
+    });
+  });
+})();
+// =====================================================
+// YIELD CURVE CHARTS
+// =====================================================
+const yieldCharts = {}; // key → Chart instance
+
+function fitLogCurve(points){
+  // y = a + b * ln(x) — least squares on (ln(x), y)
+  const valid = points.filter(p => p.x > 0 && isFinite(p.y));
+  if(valid.length < 2) return null;
+  let sumU=0,sumY=0,sumUU=0,sumUY=0,n=valid.length;
+  for(const p of valid){
+    const u = Math.log(p.x);
+    sumU+=u; sumY+=p.y; sumUU+=u*u; sumUY+=u*p.y;
+  }
+  const b = (n*sumUY - sumU*sumY) / (n*sumUU - sumU*sumU);
+  const a = (sumY - b*sumU) / n;
+  if(!isFinite(a)||!isFinite(b)) return null;
+  // Generate smooth curve points
+  const minX = Math.min(...valid.map(p=>p.x)) * 0.8;
+  const maxX = Math.max(...valid.map(p=>p.x)) * 1.1;
+  const curvePoints = [];
+  const steps = 50;
+  for(let i=0;i<=steps;i++){
+    const x = minX + (maxX-minX)*i/steps;
+    if(x <= 0) continue;
+    curvePoints.push({x, y: a + b*Math.log(x)});
+  }
+  return curvePoints;
+}
+
+function getYieldValue(inst, metric){
+  if(metric==='TNA') return inst.bidTNA;
+  if(metric==='TIR') return inst.bidTIR;
+  if(metric==='TEM') return inst.bidTEM;
+  return inst.bidTNA;
+}
+
+function getAskYieldValue(inst, metric){
+  if(metric==='TNA') return inst.askTNA;
+  // askTIR/askTEM not computed, fallback
+  return inst.askTNA;
+}
+
+function renderYieldCharts(panel){
+  const container = document.getElementById('charts'+panel);
+  if(!container) return;
+  const metric = document.getElementById('metric'+panel)?.value || 'TNA';
+  const metricLabel = metric==='TIR' ? 'TIR (TEA) %' : metric+' %';
+  const items = allInstruments.filter(i=>i.panel===panel);
+  // Group by category preserving order
+  const cats = [];
+  const catMap = {};
+  for(const inst of items){
+    if(!catMap[inst.category]){
+      catMap[inst.category] = [];
+      cats.push(inst.category);
+    }
+    catMap[inst.category].push(inst);
+  }
+
+  // Create/update a chart per category
+  let html = '';
+  for(const cat of cats){
+    const key = panel+'_'+cat.replace(/[^a-zA-Z0-9]/g,'');
+    html += `<div class="yield-chart-card"><h4 onclick="toggleChart(this.parentElement)"><span class="chart-toggle">&#9660;</span>${cat}</h4><div class="yield-chart-container"><canvas id="yc_${key}"></canvas></div><div class="chart-h-resizer"></div></div>`;
+  }
+  container.innerHTML = html;
+
+  // Destroy old charts for this panel
+  for(const k of Object.keys(yieldCharts)){
+    if(k.startsWith(panel+'_')){
+      yieldCharts[k].destroy();
+      delete yieldCharts[k];
+    }
+  }
+
+  for(const cat of cats){
+    const key = panel+'_'+cat.replace(/[^a-zA-Z0-9]/g,'');
+    const insts = catMap[cat];
+    const bidPoints = [];
+    const askPoints = [];
+    const bidLabels = [];
+    const askLabels = [];
+
+    for(const inst of insts){
+      const dur = inst.duration;
+      if(!dur || !isFinite(dur) || dur <= 0) continue;
+      const bv = getYieldValue(inst, metric);
+      if(bv && isFinite(bv) && bv !== 0){
+        bidPoints.push({x:dur, y:bv*100});
+        bidLabels.push(inst.ticker);
+      }
+      const av = getAskYieldValue(inst, metric);
+      if(av && isFinite(av) && av !== 0){
+        askPoints.push({x:dur, y:av*100});
+        askLabels.push(inst.ticker);
+      }
+    }
+
+    const datasets = [
+      {label:'Bid '+metric, data:bidPoints, backgroundColor:'rgba(49,130,206,.8)', borderColor:'rgba(49,130,206,.8)', pointRadius:5, pointHoverRadius:7, showLine:false, tickers:bidLabels},
+      {label:'Ask '+metric, data:askPoints, backgroundColor:'rgba(229,62,62,.6)', borderColor:'rgba(229,62,62,.6)', pointRadius:4, pointStyle:'triangle', pointHoverRadius:6, showLine:false, tickers:askLabels}
+    ];
+
+    // Log fit curves
+    const bidCurve = fitLogCurve(bidPoints);
+    if(bidCurve){
+      datasets.push({
+        label:'Bid fit', data:bidCurve, borderColor:'rgba(49,130,206,.35)', backgroundColor:'transparent',
+        borderWidth:2, borderDash:[4,3], pointRadius:0, showLine:true, tension:0.4, type:'line'
+      });
+    }
+    const askCurve = fitLogCurve(askPoints);
+    if(askCurve){
+      datasets.push({
+        label:'Ask fit', data:askCurve, borderColor:'rgba(229,62,62,.3)', backgroundColor:'transparent',
+        borderWidth:2, borderDash:[4,3], pointRadius:0, showLine:true, tension:0.4, type:'line'
+      });
+    }
+
+    const canvas = document.getElementById('yc_'+key);
+    if(!canvas) continue;
+    yieldCharts[key] = new Chart(canvas.getContext('2d'),{
+      type:'scatter',
+      data:{datasets},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              label: function(ctx){
+                const ds = ctx.dataset;
+                if(ds.tickers && ds.tickers[ctx.dataIndex])
+                  return ds.tickers[ctx.dataIndex]+': '+ctx.parsed.y.toFixed(2)+'%';
+                return ctx.parsed.y.toFixed(2)+'%';
+              }
+            }
+          }
+        },
+        scales:{
+          x:{title:{display:true,text:'Duration (años)',font:{size:9}},ticks:{font:{size:9}}},
+          y:{title:{display:true,text:metricLabel,font:{size:9}},ticks:{font:{size:9},callback:v=>v.toFixed(1)+'%'}}
+        }
+      }
+    });
+  }
+}
+
+function updateYieldCharts(panel){
+  if(!panel){
+    // Update active tab
+    const active = document.querySelector('.tab-btn.active');
+    panel = active?.id?.includes('USD') ? 'USD' : 'ARS';
+  }
+  renderYieldCharts(panel);
+}
+
+// =====================================================
+// LIVE PRICES (IOL via server proxy)
+// =====================================================
+let priceMap = {}; // symbol → {last, prevClose, prevLast}
+
+function getPriceSymbol(inst){
+  // USD Globales/Bonares → "D" suffix (cable USD)
+  if(inst.panel==='USD' && (inst.category==='Globales'||inst.category==='Bonares'))
+    return inst.ticker + 'D';
+  // Everything else → plain symbol
+  return inst.ticker;
+}
+
+async function fetchPrices(){
+  try {
+    const res = await fetch('/api/bonos');
+    const json = await res.json();
+    if(!json.data) return;
+    const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const newMap = json.data;
+    // Merge with previous data to track prevLast
+    for(const [sym, d] of Object.entries(newMap)){
+      const prev = priceMap[sym];
+      priceMap[sym] = {
+        last: d.last || 0,
+        prevClose: d.prevClose || 0,
+        prevLast: prev ? prev.last : 0,
+        time: now
+      };
+    }
+    // Update instruments
+    for(const inst of allInstruments){
+      const sym = getPriceSymbol(inst);
+      const data = priceMap[sym];
+      if(data && data.last > 0){
+        inst.lastPx = data.last;
+        inst.lastPxPrev = data.prevLast;
+        inst.lastPxPrevClose = data.prevClose;
+        inst.lastPxTime = data.time;
+        // Auto-fill bid if empty (skip categories where price units don't match calc)
+        const skipAutoFill = inst.category === 'Bopreales' || inst.category === 'USD Linked' || inst.category === 'Duales/Tamar';
+        if(!skipAutoFill && inst.bidPx === 0 && data.last > 0){
+          inst.bidPx = data.last;
+          recalcRow(inst);
+        }
+      }
+    }
+    updateAllLastPx();
+    updateYieldCharts('USD');
+    updateYieldCharts('ARS');
+    toast('Precios actualizados ' + now + ' (' + json.count + ' símbolos)');
+  } catch(e){
+    console.warn('Price fetch error:', e);
+  }
+}
+
+function updateAllLastPx(){
+  for(const inst of allInstruments){
+    const row = document.querySelector(`tr[data-ticker="${inst.ticker}"]`);
+    if(!row) continue;
+    const cell = row.querySelector('.last-px');
+    if(!cell) continue;
+    if(inst.lastPx > 0){
+      const val = inst.lastPx;
+      cell.textContent = val >= 1000 ? formatNum(val,0) : formatNum(val,2);
+      // Color based on change vs previous close
+      cell.classList.remove('up','down');
+      if(inst.lastPxPrevClose > 0){
+        if(val > inst.lastPxPrevClose) cell.classList.add('up');
+        else if(val < inst.lastPxPrevClose) cell.classList.add('down');
+      }
+      // Flash animation on price change
+      if(inst.lastPxPrev > 0 && val !== inst.lastPxPrev){
+        cell.classList.remove('flash-up','flash-down');
+        void cell.offsetWidth; // reflow
+        cell.classList.add(val > inst.lastPxPrev ? 'flash-up' : 'flash-down');
+      }
+      cell.title = `Últ: ${val} | ${inst.lastPxTime || ''}`;
+    }
+    // Also update bid/ask inputs if they were auto-filled
+    updateRowDOM(inst);
+  }
+}
+
+// =====================================================
+// USER PROFILES
+// =====================================================
+function getProfiles(){
+  try { return JSON.parse(localStorage.getItem('rfProfiles')) || []; }
+  catch(e){ return []; }
+}
+function saveProfiles(profiles){
+  localStorage.setItem('rfProfiles', JSON.stringify(profiles));
+}
+function getActiveProfileName(){
+  return localStorage.getItem('rfActiveProfile') || 'Default';
+}
+
+function snapshotState(){
+  const instruments = {};
+  for(const inst of allInstruments){
+    instruments[inst.ticker] = {bidPx: inst.bidPx||0, askPx: inst.askPx||0, plazo: inst.plazo||0};
+  }
+  const grid = document.querySelector('.tab-pane-grid');
+  const gridSplit = grid ? grid.style.gridTemplateColumns : '';
+  const activeTab = document.querySelector('.tab-btn.active')?.id?.includes('ARS') ? 'ARS' : 'USD';
+  return {
+    instruments,
+    gridSplit,
+    activeTab,
+    yieldMetricUSD: document.getElementById('metricUSD')?.value || 'TNA',
+    yieldMetricARS: document.getElementById('metricARS')?.value || 'TNA'
+  };
+}
+
+function saveCurrentView(){
+  const name = getActiveProfileName();
+  const profiles = getProfiles();
+  const state = snapshotState();
+  state.name = name;
+  const idx = profiles.findIndex(p=>p.name===name);
+  if(idx >= 0) profiles[idx] = state;
+  else profiles.push(state);
+  saveProfiles(profiles);
+  toast('Vista guardada: ' + name);
+}
+
+function loadProfile(name){
+  const profiles = getProfiles();
+  const profile = profiles.find(p=>p.name===name);
+  localStorage.setItem('rfActiveProfile', name);
+  // Update selector
+  const sel = document.getElementById('profileSelect');
+  if(sel) sel.value = name;
+  if(!profile) return; // No saved state yet, keep defaults
+  // Restore instrument prices
+  if(profile.instruments){
+    for(const inst of allInstruments){
+      const saved = profile.instruments[inst.ticker];
+      if(saved){
+        inst.bidPx = saved.bidPx || 0;
+        inst.askPx = saved.askPx || 0;
+        inst.plazo = saved.plazo != null ? saved.plazo : 1;
+        recalcRow(inst);
+      }
+    }
+  }
+  // Re-render tables
+  renderPanel('tblUSD','USD');
+  renderPanel('tblARS','ARS');
+  // Restore grid split
+  if(profile.gridSplit){
+    document.querySelectorAll('.tab-pane-grid').forEach(g => g.style.gridTemplateColumns = profile.gridSplit);
+  }
+  // Restore active tab
+  if(profile.activeTab) switchTab(profile.activeTab);
+  // Restore yield metrics
+  if(profile.yieldMetricUSD){
+    const m = document.getElementById('metricUSD');
+    if(m){ m.value = profile.yieldMetricUSD; }
+  }
+  if(profile.yieldMetricARS){
+    const m = document.getElementById('metricARS');
+    if(m){ m.value = profile.yieldMetricARS; }
+  }
+  // Re-render charts
+  updateYieldCharts('USD');
+  updateYieldCharts('ARS');
+}
+
+function promptCreateProfile(){
+  const name = prompt('Nombre del nuevo perfil:');
+  if(!name || !name.trim()) return;
+  const profiles = getProfiles();
+  if(profiles.find(p=>p.name===name.trim())){
+    alert('Ya existe un perfil con ese nombre.');
+    return;
+  }
+  const state = snapshotState();
+  state.name = name.trim();
+  profiles.push(state);
+  saveProfiles(profiles);
+  localStorage.setItem('rfActiveProfile', name.trim());
+  renderProfileSelector();
+  toast('Perfil creado: ' + name.trim());
+}
+
+function promptDeleteProfile(){
+  const name = getActiveProfileName();
+  if(name === 'Default'){
+    alert('No se puede eliminar el perfil Default.');
+    return;
+  }
+  if(!confirm('Eliminar perfil "' + name + '"?')) return;
+  let profiles = getProfiles().filter(p=>p.name!==name);
+  saveProfiles(profiles);
+  localStorage.setItem('rfActiveProfile', 'Default');
+  renderProfileSelector();
+  loadProfile('Default');
+  toast('Perfil eliminado: ' + name);
+}
+
+function renderProfileSelector(){
+  const sel = document.getElementById('profileSelect');
+  if(!sel) return;
+  const profiles = getProfiles();
+  const active = getActiveProfileName();
+  // Ensure Default exists
+  if(!profiles.find(p=>p.name==='Default')){
+    profiles.unshift({name:'Default'});
+    saveProfiles(profiles);
+  }
+  sel.innerHTML = profiles.map(p =>
+    `<option value="${p.name}"${p.name===active?' selected':''}>${p.name}</option>`
+  ).join('');
+}
+
+// =====================================================
+// INITIALIZATION
+// =====================================================
+document.addEventListener('DOMContentLoaded',function(){
+  buildInstruments();
+  allInstruments.forEach(inst=>recalcRow(inst));
+  renderPanel('tblUSD','USD');
+  renderPanel('tblARS','ARS');
+  const usdCount = allInstruments.filter(i=>i.panel==='USD').length;
+  const arsCount = allInstruments.filter(i=>i.panel==='ARS').length;
+  document.getElementById('countUSD').textContent = `${usdCount} instrumentos`;
+  document.getElementById('countARS').textContent = `${arsCount} instrumentos`;
+  updateClock();
+  setInterval(updateClock,1000);
+  // Load saved profile
+  renderProfileSelector();
+  loadProfile(getActiveProfileName());
+  // Initial yield charts
+  renderYieldCharts('USD');
+  renderYieldCharts('ARS');
+  // Fetch live prices on load + every 30s
+  fetchPrices();
+  setInterval(fetchPrices, 30000);
+  // Auto-save on page close
+  window.addEventListener('beforeunload', ()=>{ saveCurrentView(); });
+});
+</script>
+</body>
+</html>
