@@ -7,9 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#1a365d;--primary-light:#2c5282;--accent:#3182ce;--bg:#f0f2f5;--card:#fff;--text:#2d3748;--text-light:#718096;--border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.12);--shadow-lg:0 4px 6px rgba(0,0,0,.07);--green:#38a169;--red:#e53e3e;--orange:#dd6b20}
+:root{--primary:#7c4a1e;--primary-light:#a0622d;--accent:#d4843e;--bg:#faf6f1;--card:#fff;--text:#3d2e1f;--text-light:#8b7355;--border:#e8ddd0;--shadow:0 1px 3px rgba(80,50,20,.12);--shadow-lg:0 4px 6px rgba(80,50,20,.1);--green:#38a169;--red:#e53e3e;--orange:#dd6b20}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.4;font-size:13px}
 .header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:.8rem 1.5rem;box-shadow:var(--shadow-lg);display:flex;justify-content:space-between;align-items:center}
 .header h1{font-size:1.2rem;font-weight:700}
@@ -23,6 +24,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .tab-btn:not(.active){background:var(--primary-light);color:rgba(255,255,255,.85)}
 .tab-btn:not(.active):hover{background:var(--primary);color:#fff}
 .tab-btn .tab-count{font-size:.65rem;font-weight:400;opacity:.7;margin-left:.4rem}
+.tab-btn.sortable-ghost{opacity:.4;background:var(--accent)!important}
+.tab-btn.sortable-chosen{box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.tab-btn.partial-detach{border-bottom:2px dashed var(--accent)}
+.tab-detach-btn{display:none;font-size:.55rem;margin-left:.3rem;opacity:.5;cursor:pointer;vertical-align:middle}
+.tab-btn:hover .tab-detach-btn{display:inline}
+.tab-detach-btn:hover{opacity:1}
+.detach-btn{background:none;border:none;cursor:pointer;font-size:.6rem;opacity:.35;padding:0 .2rem;color:var(--primary)}
+.detach-btn:hover{opacity:1}
+.table-detach-bar{display:flex;justify-content:flex-end;padding:1px 4px;background:var(--card);border-bottom:1px solid var(--border)}
 .tab-content{padding:0 .75rem .75rem;max-width:100%}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
@@ -59,7 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .metric-selector{font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:3px;background:#fff;cursor:pointer;font-family:inherit}
 .cell-input{width:50px;padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;text-align:right;background:transparent;font-family:inherit;transition:border-color .15s}
 .cell-input:hover{border-color:var(--border)}
-.cell-input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(49,130,206,.15)}
+.cell-input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(212,132,62,.2)}
 .cell-input.w40{width:40px}
 .cell-select{padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;background:transparent;cursor:pointer;font-family:inherit}
 .cell-select:focus{outline:none;border-color:var(--accent)}
@@ -148,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .amort-add-btn{font-size:.6rem;background:none;border:1px dashed var(--border);color:var(--primary);cursor:pointer;padding:.15rem .4rem;border-radius:3px;margin-top:.15rem}
 .amort-add-btn:hover{background:var(--bg)}
 .licit-upload-area{border:2px dashed var(--border);border-radius:6px;padding:.6rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:.5rem}
-.licit-upload-area:hover{border-color:var(--accent);background:rgba(49,130,206,.04)}
+.licit-upload-area:hover{border-color:var(--accent);background:rgba(212,132,62,.06)}
 .licit-upload-area .icon{font-size:1.4rem;margin-bottom:.2rem}
 .licit-upload-area p{font-size:.65rem;color:var(--text-light)}
 .licit-upload-area .formats{font-size:.58rem;color:var(--text-light);opacity:.7;margin-top:.1rem}
@@ -275,28 +285,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 </div>
 
-<div class="tab-bar" style="flex-wrap:wrap">
-<button class="tab-btn active" onclick="switchTab('USD')" id="tabBtnUSD">Bonos USD <span class="tab-count" id="countUSD"></span></button>
-<button class="tab-btn" onclick="switchTab('ARS')" id="tabBtnARS">Bonos Pesos <span class="tab-count" id="countARS"></span></button>
-<button class="tab-btn" onclick="switchTab('PROV')" id="tabBtnPROV">Provinciales <span class="tab-count" id="countPROV"></span></button>
-<button class="tab-btn" onclick="switchTab('CORP')" id="tabBtnCORP">Corp USD <span class="tab-count" id="countCORP"></span></button>
-<button class="tab-btn" onclick="switchTab('CORPLINK')" id="tabBtnCORPLINK">Corp USD Linked <span class="tab-count" id="countCORPLINK"></span></button>
-<button class="tab-btn" onclick="switchTab('CORPTAMAR')" id="tabBtnCORPTAMAR">Corp Tamar <span class="tab-count" id="countCORPTAMAR"></span></button>
-<button class="tab-btn" onclick="switchTab('ROFEX')" id="tabBtnROFEX">Rofex USD <span class="tab-count" id="countROFEX"></span></button>
+<div class="tab-bar" id="tabBar" style="flex-wrap:wrap">
+<button class="tab-btn active" data-panel="USD" onclick="switchTab('USD')" id="tabBtnUSD">Bonos USD <span class="tab-count" id="countUSD"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('USD')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="ARS" onclick="switchTab('ARS')" id="tabBtnARS">Bonos Pesos <span class="tab-count" id="countARS"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('ARS')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="PROV" onclick="switchTab('PROV')" id="tabBtnPROV">Provinciales <span class="tab-count" id="countPROV"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('PROV')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="CORP" onclick="switchTab('CORP')" id="tabBtnCORP">Corp USD <span class="tab-count" id="countCORP"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('CORP')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="CORPLINK" onclick="switchTab('CORPLINK')" id="tabBtnCORPLINK">Corp USD Linked <span class="tab-count" id="countCORPLINK"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('CORPLINK')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="CORPTAMAR" onclick="switchTab('CORPTAMAR')" id="tabBtnCORPTAMAR">Corp Tamar <span class="tab-count" id="countCORPTAMAR"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('CORPTAMAR')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="ROFEX" onclick="switchTab('ROFEX')" id="tabBtnROFEX">Rofex USD <span class="tab-count" id="countROFEX"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('ROFEX')" title="Abrir en ventana">&#8599;</span></button>
 </div>
 <div class="tab-content">
 <!-- TAB 1: Bonos USD -->
 <div class="tab-pane active" id="paneUSD">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('USD')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="panel-body"><table id="tblUSD"><thead><tr>
 <th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarUSD">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('USD')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricUSD" onchange="updateYieldCharts('USD')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -309,14 +320,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="tab-pane" id="paneARS">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('ARS')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="panel-body"><table id="tblARS"><thead><tr>
 <th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarARS">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('ARS')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricARS" onchange="updateYieldCharts('ARS')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -329,14 +341,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="tab-pane" id="panePROV">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('PROV')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="panel-body"><table id="tblPROV"><thead><tr>
 <th>Días</th><th>Ticker</th><th>Last</th><th>Bid Px</th><th>Ask Px</th><th>Bid TNA</th><th>Ask TNA</th><th>Dur</th><th>TIR</th><th>TEM</th><th>Plazo</th>
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarPROV">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('PROV')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricPROV" onchange="updateYieldCharts('PROV')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -349,6 +362,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="tab-pane" id="paneCORP">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('CORP')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
 <label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
 <select id="filterCorpEmisor" onchange="applyCorpFilter('CORP')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
@@ -361,9 +375,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarCORP">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('CORP')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricCORP" onchange="updateYieldCharts('CORP')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -376,6 +390,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="tab-pane" id="paneCORPLINK">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('CORPLINK')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
 <label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
 <select id="filterCorpLinkEmisor" onchange="applyCorpFilter('CORPLINK')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
@@ -388,9 +403,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarCORPLINK">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('CORPLINK')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricCORPLINK" onchange="updateYieldCharts('CORPLINK')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -403,6 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="tab-pane" id="paneCORPTAMAR">
 <div class="tab-pane-grid">
 <div class="panel">
+<div class="table-detach-bar"><button class="detach-btn" onclick="detachTable('CORPTAMAR')" title="Detach tabla">&#8599; Tabla</button></div>
 <div class="corp-filters" style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
 <label style="font-size:.65rem;font-weight:600;color:var(--text-light)">Filtros:</label>
 <select id="filterCorpTamarEmisor" onchange="applyCorpFilter('CORPTAMAR')" style="font-size:.65rem;padding:2px 4px"><option value="">Emisor: Todos</option></select>
@@ -415,9 +431,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarCORPTAMAR">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Yield Curves <button class="detach-btn" onclick="detachCharts('CORPTAMAR')" title="Detach charts">&#8599;</button></span>
 <select class="metric-selector" id="metricCORPTAMAR" onchange="updateYieldCharts('CORPTAMAR')">
 <option value="TNA">TNA</option><option value="TIR">TIR (TEA)</option><option value="TEM">TEM</option>
 </select>
@@ -435,6 +451,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <input type="number" id="spotInput" step="0.01" style="width:100px;font-size:.72rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px" onchange="onSpotChange()" placeholder="ej: 1075.50">
 <span id="spotStatus" style="font-size:.6rem;color:var(--text-light)"></span>
 <button onclick="fetchSpot()" style="font-size:.6rem;padding:2px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--card)">Actualizar Spot</button>
+<span style="flex:1"></span>
+<button class="detach-btn" onclick="detachTable('ROFEX')" title="Detach tabla">&#8599; Tabla</button>
 </div>
 <div class="panel-body"><table id="tblROFEX"><thead><tr>
 <th style="text-align:left">Posición</th><th style="text-align:left">Ticker</th><th>Último</th><th>Bid</th><th>Ask</th>
@@ -442,9 +460,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
-<div class="charts-sidebar">
+<div class="charts-sidebar" id="chartsSidebarROFEX">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
-<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Curva Futuros</span>
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Curva Futuros <button class="detach-btn" onclick="detachCharts('ROFEX')" title="Detach charts">&#8599;</button></span>
 </div>
 <div id="chartsROFEX"></div>
 </div>
@@ -2494,7 +2512,7 @@ function showDetail(ticker){
     chartDetail = new Chart(ctx,{type:'bar',data:{
       labels:inst._flows.map(f=>f.date),
       datasets:[
-        {label:'Cupón',data:inst._flows.map(f=>f.coupon),backgroundColor:'rgba(49,130,206,.7)',borderRadius:2},
+        {label:'Cupón',data:inst._flows.map(f=>f.coupon),backgroundColor:'rgba(212,132,62,.7)',borderRadius:2},
         {label:'Amort',data:inst._flows.map(f=>f.amort),backgroundColor:'rgba(56,161,105,.7)',borderRadius:2}
       ]
     },options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:`Flujo de Fondos - ${inst.ticker}`,font:{size:12}}},scales:{x:{ticks:{maxTicksLimit:12}},y:{title:{display:true,text:'c/100 VN'}}}}});
@@ -2870,7 +2888,7 @@ function renderYieldCharts(panel){
     }
 
     const datasets = [
-      {label:'Bid '+metric, data:bidPoints, backgroundColor:'rgba(49,130,206,.8)', borderColor:'rgba(49,130,206,.8)', pointRadius:5, pointHoverRadius:7, showLine:false, tickers:bidLabels},
+      {label:'Bid '+metric, data:bidPoints, backgroundColor:'rgba(212,132,62,.8)', borderColor:'rgba(212,132,62,.8)', pointRadius:5, pointHoverRadius:7, showLine:false, tickers:bidLabels},
       {label:'Ask '+metric, data:askPoints, backgroundColor:'rgba(229,62,62,.6)', borderColor:'rgba(229,62,62,.6)', pointRadius:4, pointStyle:'triangle', pointHoverRadius:6, showLine:false, tickers:askLabels}
     ];
 
@@ -2878,7 +2896,7 @@ function renderYieldCharts(panel){
     const bidCurve = fitLogCurve(bidPoints);
     if(bidCurve){
       datasets.push({
-        label:'Bid fit', data:bidCurve, borderColor:'rgba(49,130,206,.35)', backgroundColor:'transparent',
+        label:'Bid fit', data:bidCurve, borderColor:'rgba(212,132,62,.35)', backgroundColor:'transparent',
         borderWidth:2, borderDash:[4,3], pointRadius:0, showLine:true, tension:0.4, type:'line'
       });
     }
@@ -2978,6 +2996,7 @@ async function fetchPrices(){
     updateAllLastPx();
     ALL_PANELS.forEach(p=>updateYieldCharts(p));
     toast('Precios actualizados ' + now + ' (' + json.count + ' símbolos)');
+    DetachManager.broadcastDataUpdate();
   } catch(e){
     console.warn('Price fetch error:', e);
   }
@@ -3041,7 +3060,8 @@ function snapshotState(){
     const m = document.getElementById('metric'+p);
     if(m) metrics['yieldMetric'+p] = m.value;
   });
-  return { instruments, gridSplit, activeTab, spot: currentSpot, ...metrics };
+  const tabOrder = loadTabOrder();
+  return { instruments, gridSplit, activeTab, spot: currentSpot, tabOrder, ...metrics };
 }
 
 function saveCurrentView(){
@@ -3092,6 +3112,11 @@ function loadProfile(name){
   // Restore grid split
   if(profile.gridSplit){
     document.querySelectorAll('.tab-pane-grid').forEach(g => g.style.gridTemplateColumns = profile.gridSplit);
+  }
+  // Restore tab order
+  if(profile.tabOrder && Array.isArray(profile.tabOrder)){
+    saveTabOrder(profile.tabOrder);
+    applyTabOrder();
   }
   // Restore active tab
   if(profile.activeTab) switchTab(profile.activeTab);
@@ -3318,6 +3343,7 @@ async function fetchRofexPrices(){
     }
     renderRofexPanel();
     renderRofexCharts();
+    DetachManager.broadcastDataUpdate();
   }catch(e){
     console.warn('Rofex fetch error:', e);
   }
@@ -3349,8 +3375,8 @@ function renderRofexCharts(){
       datasets:[{
         label:'Precio',
         data:items.map(i=>({x:i.dtm, y:i.lastPx})),
-        backgroundColor:'rgba(49,130,206,.7)',
-        borderColor:'rgba(49,130,206,1)',
+        backgroundColor:'rgba(212,132,62,.7)',
+        borderColor:'rgba(212,132,62,1)',
         pointRadius:5,
         showLine:true,
         tension:0.3
@@ -3408,6 +3434,387 @@ function renderRofexCharts(){
 
 const ALL_PANELS = ['USD','ARS','PROV','CORP','CORPLINK','CORPTAMAR','ROFEX'];
 const PANEL_TABLES = {USD:'tblUSD',ARS:'tblARS',PROV:'tblPROV',CORP:'tblCORP',CORPLINK:'tblCORPLINK',CORPTAMAR:'tblCORPTAMAR',ROFEX:'tblROFEX'};
+const PANEL_NAMES = {USD:'Bonos USD',ARS:'Bonos Pesos',PROV:'Provinciales',CORP:'Corp USD',CORPLINK:'Corp USD Linked',CORPTAMAR:'Corp Tamar',ROFEX:'Rofex USD'};
+
+// =====================================================
+// TAB REORDERING (SortableJS)
+// =====================================================
+function reorderTabPanes(order){
+  const content = document.querySelector('.tab-content');
+  if(!content) return;
+  order.forEach(panel => {
+    const pane = document.getElementById('pane'+panel);
+    if(pane) content.appendChild(pane);
+  });
+}
+function saveTabOrder(order){
+  localStorage.setItem('rfTabOrder', JSON.stringify(order));
+}
+function loadTabOrder(){
+  try { return JSON.parse(localStorage.getItem('rfTabOrder')); } catch(e){ return null; }
+}
+function applyTabOrder(){
+  const order = loadTabOrder();
+  if(!order || !Array.isArray(order)) return;
+  const tabBar = document.getElementById('tabBar');
+  if(!tabBar) return;
+  order.forEach(panel => {
+    const btn = document.getElementById('tabBtn'+panel);
+    if(btn) tabBar.appendChild(btn);
+  });
+  reorderTabPanes(order);
+}
+
+// =====================================================
+// DETACH MANAGER — pop-out windows infrastructure
+// =====================================================
+const DetachManager = {
+  windows: {},       // key → {win, type, panel, chartKey?}
+  channel: null,
+  _pollTimer: null,
+
+  init(){
+    this.channel = new BroadcastChannel('rf-calc-sync');
+    this.channel.onmessage = (e) => this.onMessage(e.data);
+    // Poll for closed child windows every 2s
+    this._pollTimer = setInterval(() => this.pollClosed(), 2000);
+  },
+
+  onMessage(msg){
+    if(msg.type === 'child-ready'){
+      // Send initial data to the child
+      this.sendDataToChild(msg.key);
+    }
+    if(msg.type === 'child-closing'){
+      this.reintegrate(msg.key);
+    }
+    if(msg.type === 'cell-change'){
+      // Apply cell edit from child → parent
+      const inst = allInstruments.find(i => i.ticker === msg.ticker);
+      if(inst){
+        if(msg.field === 'bidPx') inst.bidPx = parseFloat(msg.value)||0;
+        if(msg.field === 'askPx') inst.askPx = parseFloat(msg.value)||0;
+        if(msg.field === 'plazo') inst.plazo = parseFloat(msg.value)||0;
+        if(inst.calcType === 'futures') recalcFutures(inst);
+        else recalcRow(inst);
+        // Re-render parent row
+        const panel = inst.panel;
+        if(panel === 'ROFEX') renderRofexPanel();
+        else renderPanel(PANEL_TABLES[panel], panel);
+        updateYieldCharts(panel);
+      }
+    }
+  },
+
+  pollClosed(){
+    for(const [key, info] of Object.entries(this.windows)){
+      if(info.win && info.win.closed){
+        this.reintegrate(key);
+      }
+    }
+  },
+
+  reintegrate(key){
+    const info = this.windows[key];
+    if(!info) return;
+    const panel = info.panel;
+    if(info.type === 'tab'){
+      // Show tab button and pane again
+      const btn = document.getElementById('tabBtn'+panel);
+      if(btn) btn.style.display = '';
+      const pane = document.getElementById('pane'+panel);
+      if(pane) pane.style.display = '';
+      // Re-render charts (they were destroyed when detached)
+      if(panel === 'ROFEX') renderRofexCharts();
+      else renderYieldCharts(panel);
+      // If no tab is active, switch to this one
+      if(!document.querySelector('.tab-btn.active:not([style*="display: none"])')){
+        switchTab(panel);
+      }
+    }
+    if(info.type === 'charts'){
+      const sidebar = document.getElementById('chartsSidebar'+panel);
+      if(sidebar) sidebar.style.display = '';
+      // Restore grid
+      const grid = document.querySelector('#pane'+panel+' .tab-pane-grid');
+      if(grid) grid.style.gridTemplateColumns = '';
+      // Re-render charts
+      if(panel === 'ROFEX') renderRofexCharts();
+      else renderYieldCharts(panel);
+    }
+    if(info.type === 'table'){
+      const panelEl = document.querySelector('#pane'+panel+' .panel');
+      if(panelEl) panelEl.style.display = '';
+      const resizer = document.querySelector('#pane'+panel+' .grid-resizer');
+      if(resizer) resizer.style.display = '';
+      const grid = document.querySelector('#pane'+panel+' .tab-pane-grid');
+      if(grid) grid.style.gridTemplateColumns = '';
+    }
+    // Close window if still open
+    if(info.win && !info.win.closed) try { info.win.close(); } catch(e){}
+    delete this.windows[key];
+  },
+
+  broadcastDataUpdate(){
+    if(!this.channel) return;
+    for(const [key, info] of Object.entries(this.windows)){
+      if(info.win && !info.win.closed){
+        this.sendDataToChild(key);
+      }
+    }
+  },
+
+  sendDataToChild(key){
+    const info = this.windows[key];
+    if(!info || !info.win || info.win.closed) return;
+    const panel = info.panel;
+    const items = allInstruments.filter(i => i.panel === panel);
+    // Serialize instrument data
+    const instData = items.map(i => ({
+      ticker: i.ticker, bidPx: i.bidPx, askPx: i.askPx, plazo: i.plazo,
+      days: i.days, bidTNA: i.bidTNA, askTNA: i.askTNA, dur: i.dur,
+      tir: i.tir, tem: i.tem, lastPx: i.lastPx, lastPxPrevClose: i.lastPxPrevClose,
+      lastPxTime: i.lastPxTime, category: i.category, calcType: i.calcType,
+      position: i.position, basis: i.basis, futureTNA: i.futureTNA,
+      futureTEA: i.futureTEA, futureTEM: i.futureTEM, last: i.last,
+      bid: i.bid, ask: i.ask, oi: i.oi, vol: i.vol
+    }));
+    this.channel.postMessage({
+      type: 'data-update', key, panel,
+      instruments: instData, spot: currentSpot
+    });
+  },
+
+  closeAll(){
+    for(const [key, info] of Object.entries(this.windows)){
+      if(info.win && !info.win.closed) try { info.win.close(); } catch(e){}
+    }
+    this.windows = {};
+  },
+
+  buildChildHTML(panel, type, title, opts={}){
+    const isDark = false; // Could detect from parent
+    const isRofex = panel === 'ROFEX';
+    // Get current CSS from parent
+    const parentCSS = document.querySelector('style').textContent;
+    let html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>${title}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+<style>
+${parentCSS}
+body{padding:.5rem;font-size:12px;overflow:auto}
+.tab-pane-grid{display:grid;grid-template-columns:1fr;height:calc(100vh - 1rem)}
+.panel-body{max-height:calc(100vh - 3rem)}
+.charts-sidebar{overflow-y:auto;max-height:calc(100vh - 1rem)}
+.child-header{background:var(--primary);color:#fff;padding:.4rem .8rem;border-radius:6px;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700}
+.child-header button{background:none;border:1px solid rgba(255,255,255,.5);color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:.7rem}
+.child-header button:hover{background:rgba(255,255,255,.2)}
+</style></head><body>
+<div class="child-header">
+<span>${title}</span>
+<button onclick="window.close()">Cerrar ✕</button>
+</div>`;
+
+    if(type === 'tab'){
+      // Clone table + charts
+      const pane = document.getElementById('pane'+panel);
+      if(pane) html += `<div class="tab-pane active" style="display:block">${pane.innerHTML}</div>`;
+    }
+    if(type === 'charts'){
+      const sidebar = document.getElementById('chartsSidebar'+panel);
+      if(sidebar) html += `<div class="charts-sidebar" style="display:block;width:100%;max-width:100%">${sidebar.innerHTML}</div>`;
+    }
+    if(type === 'table'){
+      const panelDiv = document.querySelector('#pane'+panel+' .panel');
+      if(panelDiv) html += `<div class="panel">${panelDiv.innerHTML}</div>`;
+    }
+
+    // Add child script for BroadcastChannel sync
+    html += `
+<script>
+const channel = new BroadcastChannel('rf-calc-sync');
+const childKey = '${type}_${panel}';
+const childPanel = '${panel}';
+const isRofex = ${isRofex};
+let childCharts = {};
+
+channel.onmessage = function(e){
+  const msg = e.data;
+  if(msg.type === 'data-update' && msg.key === childKey){
+    updateChildData(msg.instruments, msg.spot);
+  }
+  if(msg.type === 'parent-closing'){
+    window.close();
+  }
+};
+
+function updateChildData(instruments, spot){
+  // Update table cells
+  instruments.forEach(function(inst){
+    const row = document.querySelector('tr[data-ticker="'+inst.ticker+'"]');
+    if(!row) return;
+    if(isRofex){
+      const cells = row.querySelectorAll('td');
+      if(cells.length >= 12){
+        cells[2].textContent = inst.last > 0 ? inst.last.toFixed(2) : '-';
+        cells[3].textContent = inst.bid > 0 ? inst.bid.toFixed(2) : '-';
+        cells[4].textContent = inst.ask > 0 ? inst.ask.toFixed(2) : '-';
+        cells[5].textContent = inst.oi > 0 ? Math.round(inst.oi).toLocaleString('es-AR') : '-';
+        cells[6].textContent = inst.vol > 0 ? Math.round(inst.vol).toLocaleString('es-AR') : '-';
+        cells[8].textContent = inst.basis ? inst.basis.toFixed(2) : '-';
+        cells[9].textContent = inst.futureTNA ? inst.futureTNA.toFixed(2)+'%' : '-';
+        cells[10].textContent = inst.futureTEA ? inst.futureTEA.toFixed(2)+'%' : '-';
+        cells[11].textContent = inst.futureTEM ? inst.futureTEM.toFixed(2)+'%' : '-';
+      }
+    } else {
+      // Standard bond table
+      const lastCell = row.querySelector('.last-px');
+      if(lastCell && inst.lastPx > 0){
+        lastCell.textContent = inst.lastPx >= 1000 ? inst.lastPx.toFixed(0) : inst.lastPx.toFixed(2);
+        lastCell.classList.remove('up','down');
+        if(inst.lastPxPrevClose > 0){
+          if(inst.lastPx > inst.lastPxPrevClose) lastCell.classList.add('up');
+          else if(inst.lastPx < inst.lastPxPrevClose) lastCell.classList.add('down');
+        }
+      }
+    }
+  });
+}
+
+// Make editable cells broadcast changes back to parent
+document.addEventListener('change', function(e){
+  const cell = e.target.closest('td[contenteditable]');
+  if(!cell) return;
+  const row = cell.closest('tr');
+  if(!row) return;
+  const ticker = row.dataset.ticker;
+  const idx = cell.cellIndex;
+  let field = '';
+  if(isRofex) return; // Rofex cells not editable
+  if(idx === 3) field = 'bidPx';
+  if(idx === 4) field = 'askPx';
+  if(idx === 10) field = 'plazo';
+  if(field && ticker){
+    channel.postMessage({type:'cell-change', ticker:ticker, field:field, value:cell.textContent.trim().replace(/\\./g,'').replace(',','.')});
+  }
+});
+document.addEventListener('input', function(e){
+  const cell = e.target.closest('td[contenteditable]');
+  if(!cell) return;
+  const row = cell.closest('tr');
+  if(!row) return;
+  const ticker = row.dataset.ticker;
+  const idx = cell.cellIndex;
+  let field = '';
+  if(idx === 3) field = 'bidPx';
+  if(idx === 4) field = 'askPx';
+  if(idx === 10) field = 'plazo';
+  if(field && ticker){
+    channel.postMessage({type:'cell-change', ticker:ticker, field:field, value:cell.textContent.trim().replace(/\\./g,'').replace(',','.')});
+  }
+});
+
+// Notify parent we're ready
+channel.postMessage({type:'child-ready', key: childKey});
+
+// On close, notify parent
+window.addEventListener('beforeunload', function(){
+  channel.postMessage({type:'child-closing', key: childKey});
+});
+<\/script></body></html>`;
+    return html;
+  }
+};
+
+// =====================================================
+// DETACH FUNCTIONS
+// =====================================================
+function detachTab(panel){
+  const key = 'tab_'+panel;
+  // If already detached, focus existing window
+  if(DetachManager.windows[key]){
+    const w = DetachManager.windows[key].win;
+    if(w && !w.closed){ w.focus(); return; }
+  }
+  const title = PANEL_NAMES[panel] || panel;
+  const html = DetachManager.buildChildHTML(panel, 'tab', title);
+  const win = window.open('', '_blank', 'width=1200,height=700,scrollbars=yes,resizable=yes');
+  if(!win){
+    toast('⚠ Popup bloqueado. Permite popups para esta página.');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  DetachManager.windows[key] = {win, type:'tab', panel};
+  // Hide tab button and pane in parent
+  const btn = document.getElementById('tabBtn'+panel);
+  if(btn) btn.style.display = 'none';
+  const pane = document.getElementById('pane'+panel);
+  if(pane) pane.style.display = 'none';
+  // Switch to another visible tab if this was active
+  if(btn && btn.classList.contains('active')){
+    btn.classList.remove('active');
+    pane.classList.remove('active');
+    const nextBtn = document.querySelector('.tab-btn:not([style*="display: none"])');
+    if(nextBtn){
+      const nextPanel = nextBtn.dataset.panel;
+      if(nextPanel) switchTab(nextPanel);
+    }
+  }
+  toast(title + ' abierto en ventana separada');
+}
+
+function detachCharts(panel){
+  const key = 'charts_'+panel;
+  if(DetachManager.windows[key]){
+    const w = DetachManager.windows[key].win;
+    if(w && !w.closed){ w.focus(); return; }
+  }
+  const title = (PANEL_NAMES[panel]||panel) + ' — Charts';
+  const html = DetachManager.buildChildHTML(panel, 'charts', title);
+  const win = window.open('', '_blank', 'width=450,height=700,scrollbars=yes,resizable=yes');
+  if(!win){
+    toast('⚠ Popup bloqueado. Permite popups para esta página.');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  DetachManager.windows[key] = {win, type:'charts', panel};
+  // Hide sidebar in parent, expand table
+  const sidebar = document.getElementById('chartsSidebar'+panel);
+  if(sidebar) sidebar.style.display = 'none';
+  const resizer = document.querySelector('#pane'+panel+' .grid-resizer');
+  if(resizer) resizer.style.display = 'none';
+  const grid = document.querySelector('#pane'+panel+' .tab-pane-grid');
+  if(grid) grid.style.gridTemplateColumns = '1fr';
+  toast('Charts abierto en ventana separada');
+}
+
+function detachTable(panel){
+  const key = 'table_'+panel;
+  if(DetachManager.windows[key]){
+    const w = DetachManager.windows[key].win;
+    if(w && !w.closed){ w.focus(); return; }
+  }
+  const title = (PANEL_NAMES[panel]||panel) + ' — Tabla';
+  const html = DetachManager.buildChildHTML(panel, 'table', title);
+  const win = window.open('', '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes');
+  if(!win){
+    toast('⚠ Popup bloqueado. Permite popups para esta página.');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  DetachManager.windows[key] = {win, type:'table', panel};
+  // Hide table panel in parent, expand charts
+  const panelEl = document.querySelector('#pane'+panel+' .panel');
+  if(panelEl) panelEl.style.display = 'none';
+  const resizer = document.querySelector('#pane'+panel+' .grid-resizer');
+  if(resizer) resizer.style.display = 'none';
+  const grid = document.querySelector('#pane'+panel+' .tab-pane-grid');
+  if(grid) grid.style.gridTemplateColumns = '1fr';
+  toast('Tabla abierta en ventana separada');
+}
 
 document.addEventListener('DOMContentLoaded',function(){
   buildInstruments();
@@ -3453,8 +3860,32 @@ document.addEventListener('DOMContentLoaded',function(){
   fetchSpot();
   fetchRofexPrices();
   setInterval(fetchRofexPrices, 30000);
-  // Auto-save on page close
-  window.addEventListener('beforeunload', ()=>{ saveCurrentView(); });
+  // Init DetachManager
+  DetachManager.init();
+  // Apply saved tab order
+  applyTabOrder();
+  // Init SortableJS for tab reordering
+  const tabBar = document.getElementById('tabBar');
+  if(tabBar && typeof Sortable !== 'undefined'){
+    Sortable.create(tabBar, {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      filter: '.tab-detach-btn',
+      preventOnFilter: false,
+      onEnd: function(){
+        const order = Array.from(tabBar.querySelectorAll('.tab-btn')).map(b => b.dataset.panel).filter(Boolean);
+        reorderTabPanes(order);
+        saveTabOrder(order);
+      }
+    });
+  }
+  // Auto-save on page close + close child windows
+  window.addEventListener('beforeunload', ()=>{
+    saveCurrentView();
+    if(DetachManager.channel) DetachManager.channel.postMessage({type:'parent-closing'});
+    DetachManager.closeAll();
+  });
 });
 </script>
 </body>
