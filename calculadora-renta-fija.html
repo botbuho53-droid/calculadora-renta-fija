@@ -10,9 +10,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#7c4a1e;--primary-light:#a0622d;--accent:#d4843e;--bg:#faf6f1;--card:#fff;--text:#3d2e1f;--text-light:#8b7355;--border:#e8ddd0;--shadow:0 1px 3px rgba(80,50,20,.12);--shadow-lg:0 4px 6px rgba(80,50,20,.1);--green:#38a169;--red:#e53e3e;--orange:#dd6b20}
+:root{--primary:#5a3a1a;--primary-light:#7c5530;--accent:#c4762e;--bg:#faf7f3;--card:#fff;--text:#3d2e1f;--text-light:#8b7355;--border:#e8ddd0;--shadow:0 1px 3px rgba(80,50,20,.12);--shadow-lg:0 4px 6px rgba(80,50,20,.1);--green:#38a169;--red:#c53030;--orange:#dd6b20;
+--tab-usd:#b45309;--tab-ars:#92400e;--tab-prov:#a0522d;--tab-corp:#c2703a;--tab-corplink:#8b6914;--tab-corptamar:#6d4c20;--tab-rofex:#d4550a;--tab-forward:#a0622d}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.4;font-size:13px}
-.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:.8rem 1.5rem;box-shadow:var(--shadow-lg);display:flex;justify-content:space-between;align-items:center}
+.header{background:linear-gradient(135deg,#3d1f0a,#7c5530,#b45309);color:#fff;padding:.8rem 1.5rem;box-shadow:var(--shadow-lg);display:flex;justify-content:space-between;align-items:center}
 .header h1{font-size:1.2rem;font-weight:700}
 .header p{font-size:.75rem;opacity:.85;margin-top:.1rem}
 .header-right{display:flex;gap:.75rem;align-items:center}
@@ -20,10 +21,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .clock{font-size:.75rem;opacity:.9;font-variant-numeric:tabular-nums}
 .tab-bar{display:flex;gap:0;padding:.75rem .75rem 0;max-width:100%}
 .tab-btn{padding:.4rem .8rem;font-size:.75rem;font-weight:700;border:none;cursor:pointer;border-radius:8px 8px 0 0;transition:all .15s;font-family:inherit;position:relative;bottom:-1px}
-.tab-btn.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow);z-index:1}
-.tab-btn:not(.active){background:var(--primary-light);color:rgba(255,255,255,.85)}
-.tab-btn:not(.active):hover{background:var(--primary);color:#fff}
+.tab-btn.active{background:var(--card);box-shadow:var(--shadow);z-index:1;border-top:3px solid var(--accent)}
+.tab-btn:not(.active){color:rgba(255,255,255,.9)}
+.tab-btn:not(.active):hover{filter:brightness(1.15)}
 .tab-btn .tab-count{font-size:.65rem;font-weight:400;opacity:.7;margin-left:.4rem}
+.tab-btn[data-panel="USD"]{--tab-c:var(--tab-usd)}.tab-btn[data-panel="ARS"]{--tab-c:var(--tab-ars)}
+.tab-btn[data-panel="PROV"]{--tab-c:var(--tab-prov)}.tab-btn[data-panel="CORP"]{--tab-c:var(--tab-corp)}
+.tab-btn[data-panel="CORPLINK"]{--tab-c:var(--tab-corplink)}.tab-btn[data-panel="CORPTAMAR"]{--tab-c:var(--tab-corptamar)}
+.tab-btn[data-panel="ROFEX"]{--tab-c:var(--tab-rofex)}
+.tab-btn[data-panel="FORWARD"]{--tab-c:var(--tab-forward)}
+.tab-btn:not(.active){background:var(--tab-c,var(--primary-light))}
+.tab-btn.active{color:var(--tab-c,var(--primary));border-top-color:var(--tab-c,var(--accent))}
 .tab-btn.sortable-ghost{opacity:.4;background:var(--accent)!important}
 .tab-btn.sortable-chosen{box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .tab-btn.partial-detach{border-bottom:2px dashed var(--accent)}
@@ -33,6 +41,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .detach-btn{background:none;border:none;cursor:pointer;font-size:.6rem;opacity:.35;padding:0 .2rem;color:var(--primary)}
 .detach-btn:hover{opacity:1}
 .table-detach-bar{display:flex;justify-content:flex-end;padding:1px 4px;background:var(--card);border-bottom:1px solid var(--border)}
+.fwd-matrix{border-collapse:collapse;font-size:.62rem;width:auto}
+.fwd-matrix th,.fwd-matrix td{padding:.25rem .45rem;border:1px solid var(--border);text-align:center;white-space:nowrap}
+.fwd-matrix th{background:#fdf6ee;color:var(--primary);font-weight:600;position:sticky;top:0;z-index:2}
+.fwd-matrix th.fwd-corner{background:var(--primary);color:#fff;font-size:.58rem}
+.fwd-matrix td.fwd-spot{background:#fef9f0;font-weight:600}
+.fwd-matrix td.fwd-diag{background:#f5f0ea;color:var(--text-light);font-size:.55rem}
+.fwd-matrix td.fwd-cell{cursor:default;transition:background .1s}
+.fwd-matrix td.fwd-cell:hover{background:#fff3e0!important;font-weight:700}
+.fwd-matrix tr:hover td:not(.fwd-row-header):not(.fwd-diag){background:rgba(196,118,46,.06)}
+.fwd-matrix .fwd-row-header{background:#fdf6ee;font-weight:600;text-align:left;position:sticky;left:0;z-index:1}
+.fwd-matrix .fwd-negative{color:var(--red)}
+.fwd-matrix .fwd-high{color:#b45309;font-weight:700}
+.fwd-matrix .fwd-days{font-size:.5rem;color:var(--text-light);font-weight:400;display:block}
 .tab-content{padding:0 .75rem .75rem;max-width:100%}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
@@ -40,15 +61,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .panel-title{background:var(--primary);color:#fff;padding:.5rem .8rem;font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .panel-body{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 140px)}
 .panel-body table{width:100%;border-collapse:collapse;font-size:.65rem;white-space:nowrap;table-layout:fixed}
-.panel-body th{background:#f1f5f9;color:var(--primary);font-weight:600;padding:.3rem .2rem;text-align:right;position:sticky;top:0;z-index:2;border-bottom:2px solid var(--border);font-size:.62rem;position:relative;overflow:hidden;text-overflow:ellipsis}
+.panel-body table.rofex-wide{table-layout:auto;min-width:900px}
+.panel-body table.rofex-wide th,.panel-body table.rofex-wide td{padding:.25rem .3rem;font-size:.6rem}
+.panel-body table.rofex-wide tr.sub-header th{background:#fef3e0;font-size:.54rem;font-weight:500;padding:.15rem .3rem;border-bottom:1px solid var(--border);color:#78716c}
+.panel-body th{background:#fdf6ee;color:var(--primary);font-weight:600;padding:.3rem .2rem;text-align:right;position:sticky;top:0;z-index:2;border-bottom:2px solid var(--border);font-size:.62rem;position:relative;overflow:hidden;text-overflow:ellipsis}
 .th-resizer{position:absolute;right:0;top:0;width:4px;height:100%;cursor:col-resize;background:transparent;z-index:3}
 .th-resizer:hover,.th-resizer.active{background:var(--accent)}
 .panel-body th:nth-child(1),.panel-body th:nth-child(2){text-align:left}
-.panel-body td{padding:.2rem .15rem;text-align:right;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis}
+.panel-body td{padding:.2rem .15rem;text-align:right;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;transition:background .1s}
 .panel-body td:nth-child(1),.panel-body td:nth-child(2){text-align:left}
-.panel-body tr:hover td{background:#f0f7ff}
-.panel-body tr.selected td{background:#ebf5ff;font-weight:600}
-.cat-header td{background:linear-gradient(135deg,var(--primary-light),var(--accent));color:#fff;font-weight:700;font-size:.72rem;padding:.3rem .5rem;text-align:left!important;letter-spacing:.3px;cursor:pointer;user-select:none}
+.panel-body tr:not(.cat-header):nth-child(even) td{background:rgba(0,0,0,.018)}
+.panel-body tr:not(.cat-header):hover td{background:#fff3e0;box-shadow:inset 0 1px 0 rgba(196,118,46,.15),inset 0 -1px 0 rgba(196,118,46,.15)}
+.panel-body tr:not(.cat-header):hover td:first-child{box-shadow:inset 3px 0 0 var(--accent),inset 0 1px 0 rgba(196,118,46,.15),inset 0 -1px 0 rgba(196,118,46,.15)}
+.panel-body tr.selected td{background:#fff8ed;font-weight:600}
+.panel-body tr.chart-highlight td{background:#fef3c7!important;box-shadow:inset 3px 0 0 #f59e0b}
+.cat-header td{color:#fff;font-weight:700;font-size:.72rem;padding:.3rem .5rem;text-align:left!important;letter-spacing:.3px;cursor:pointer;user-select:none}
 .cat-toggle{float:right;font-size:.6rem;opacity:.7;margin-right:.3rem;transition:transform .2s}
 .cat-header.collapsed .cat-toggle{transform:rotate(-90deg)}
 .yield-chart-card h4{cursor:pointer;user-select:none}
@@ -293,6 +320,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <button class="tab-btn" data-panel="CORPLINK" onclick="switchTab('CORPLINK')" id="tabBtnCORPLINK">Corp USD Linked <span class="tab-count" id="countCORPLINK"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('CORPLINK')" title="Abrir en ventana">&#8599;</span></button>
 <button class="tab-btn" data-panel="CORPTAMAR" onclick="switchTab('CORPTAMAR')" id="tabBtnCORPTAMAR">Corp Tamar <span class="tab-count" id="countCORPTAMAR"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('CORPTAMAR')" title="Abrir en ventana">&#8599;</span></button>
 <button class="tab-btn" data-panel="ROFEX" onclick="switchTab('ROFEX')" id="tabBtnROFEX">Rofex USD <span class="tab-count" id="countROFEX"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('ROFEX')" title="Abrir en ventana">&#8599;</span></button>
+<button class="tab-btn" data-panel="FORWARD" onclick="switchTab('FORWARD')" id="tabBtnFORWARD">Tasas Forward<span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('FORWARD')" title="Abrir en ventana">&#8599;</span></button>
 </div>
 <div class="tab-content">
 <!-- TAB 1: Bonos USD -->
@@ -454,9 +482,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <span style="flex:1"></span>
 <button class="detach-btn" onclick="detachTable('ROFEX')" title="Detach tabla">&#8599; Tabla</button>
 </div>
-<div class="panel-body"><table id="tblROFEX"><thead><tr>
-<th style="text-align:left">Posición</th><th style="text-align:left">Ticker</th><th>Último</th><th>Bid</th><th>Ask</th>
-<th>OI</th><th>Vol</th><th>Días</th><th>Basis</th><th>TNA</th><th>TEA</th><th>TEM</th>
+<div class="panel-body"><table id="tblROFEX" class="rofex-wide"><thead><tr>
+<th style="text-align:left">Pos.</th><th>Días</th>
+<th>Bid</th><th>Últ.</th><th>Ask</th>
+<th>OI</th><th>Vol</th><th>Basis</th>
+<th class="rate-header" colspan="3" style="border-bottom:2px solid var(--accent)">TNA impl.</th>
+<th class="rate-header" colspan="3" style="border-bottom:2px solid var(--primary)">TIR impl.</th>
+<th class="rate-header" colspan="3" style="border-bottom:2px solid #6b7280">TEM impl.</th>
+</tr><tr class="sub-header">
+<th></th><th></th>
+<th></th><th></th><th></th>
+<th></th><th></th><th></th>
+<th>Bid</th><th>Últ</th><th>Ask</th>
+<th>Bid</th><th>Últ</th><th>Ask</th>
+<th>Bid</th><th>Últ</th><th>Ask</th>
 </tr></thead><tbody></tbody></table></div>
 </div>
 <div class="grid-resizer"></div>
@@ -465,6 +504,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <span style="font-size:.75rem;font-weight:700;color:var(--primary)">Curva Futuros <button class="detach-btn" onclick="detachCharts('ROFEX')" title="Detach charts">&#8599;</button></span>
 </div>
 <div id="chartsROFEX"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- TAB 8: Tasas Forward -->
+<div class="tab-pane" id="paneFORWARD">
+<div class="tab-pane-grid">
+<div class="panel">
+<div style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Curva:</label>
+<select id="fwdCurveSelect" onchange="renderForwardMatrix()" style="font-size:.68rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px"></select>
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Base:</label>
+<select id="fwdBaseSelect" onchange="renderForwardMatrix()" style="font-size:.68rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+<option value="TNA">TNA</option><option value="TEA">TIR (TEA)</option><option value="TEM">TEM</option>
+</select>
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Usar:</label>
+<select id="fwdSideSelect" onchange="renderForwardMatrix()" style="font-size:.68rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+<option value="bid">Bid</option><option value="ask">Ask</option><option value="mid">Mid</option>
+</select>
+<span style="flex:1"></span>
+<button class="detach-btn" onclick="detachTable('FORWARD')" title="Detach tabla">&#8599; Tabla</button>
+</div>
+<div class="panel-body" style="max-height:calc(100vh - 180px)">
+<div id="forwardMatrixContainer"></div>
+</div>
+</div>
+<div class="grid-resizer"></div>
+<div class="charts-sidebar" id="chartsSidebarFORWARD">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 .3rem">
+<span style="font-size:.75rem;font-weight:700;color:var(--primary)">Forward Curves <button class="detach-btn" onclick="detachCharts('FORWARD')" title="Detach charts">&#8599;</button></span>
+</div>
+<div id="chartsFORWARD"></div>
 </div>
 </div>
 </div>
@@ -993,6 +1064,7 @@ const ROFEX_CONTRACTS = [
   {ticker:'DLRJUN27',position:'Jun-27',maturity:lastBusinessDay(2027,5),iolSymbol:'DLR/JUN27'}
 ];
 let currentSpot = 0;
+let spotData = {compra:0, venta:0, mayorista:0, fecha:''}; // bid/ask/last for ticker
 
 // =====================================================
 // USD LINKED - Bonos ajustados por tipo de cambio oficial
@@ -1020,19 +1092,19 @@ const DUALES_TAMAR = [
 // Convención TNA: Plazo remanente (interés simple anualizado)
 // =====================================================
 const LECAPS = [
-  {ticker:'S16M6',name:'LECAP Mar 2026',maturity:'2026-03-16',price:103.88,vf:104.60},
+  {ticker:'S16M6',name:'LECAP Mar 2026',maturity:'2026-03-16',price:103.88,vf:104.63},
   {ticker:'S17A6',name:'LECAP Abr 2026',maturity:'2026-04-17',price:106.45,vf:110.12},
-  {ticker:'S30A6',name:'LECAP Abr 2026',maturity:'2026-04-30',price:121.96,vf:128.69},
-  {ticker:'S29Y6',name:'LECAP May 2026',maturity:'2026-05-29',price:123.52,vf:132.56},
-  {ticker:'T30J6',name:'BONCAP Jun 2026',maturity:'2026-06-30',price:132.15,vf:145.77},
-  {ticker:'S31L6',name:'LECAP Jul 2026',maturity:'2026-07-31',price:104.80,vf:117.75},
-  {ticker:'S31G6',name:'LECAP Ago 2026',maturity:'2026-08-31',price:110.49,vf:128.62},
-  {ticker:'S30O6',name:'LECAP Oct 2026',maturity:'2026-10-30',price:111.89,vf:137.23},
-  {ticker:'S30N6',name:'LECAP Nov 2026',maturity:'2026-11-30',price:105.24,vf:131.94},
-  {ticker:'T15E7',name:'BONCAP Ene 2027',maturity:'2027-01-15',price:124.60,vf:162.98},
-  {ticker:'T30A7',name:'BONCAP Abr 2027',maturity:'2027-04-30',price:112.45,vf:158.83},
-  {ticker:'T31Y7',name:'BONCAP May 2027',maturity:'2027-05-31',price:106.50,vf:152.17},
-  {ticker:'T30J7',name:'BONCAP Jun 2027',maturity:'2027-06-30',price:107.75,vf:156.73}
+  {ticker:'S30A6',name:'LECAP Abr 2026',maturity:'2026-04-30',price:121.96,vf:127.44},
+  {ticker:'S29Y6',name:'LECAP May 2026',maturity:'2026-05-29',price:123.52,vf:131.88},
+  {ticker:'T30J6',name:'BONCAP Jun 2026',maturity:'2026-06-30',price:132.15,vf:144.47},
+  {ticker:'S31L6',name:'LECAP Jul 2026',maturity:'2026-07-31',price:104.80,vf:117.11},
+  {ticker:'S31G6',name:'LECAP Ago 2026',maturity:'2026-08-31',price:110.49,vf:126.09},
+  {ticker:'S30O6',name:'LECAP Oct 2026',maturity:'2026-10-30',price:111.89,vf:133.38},
+  {ticker:'S30N6',name:'LECAP Nov 2026',maturity:'2026-11-30',price:105.24,vf:127.49},
+  {ticker:'T15E7',name:'BONCAP Ene 2027',maturity:'2027-01-15',price:124.60,vf:157.10},
+  {ticker:'T30A7',name:'BONCAP Abr 2027',maturity:'2027-04-30',price:112.45,vf:150.56},
+  {ticker:'T31Y7',name:'BONCAP May 2027',maturity:'2027-05-31',price:106.50,vf:144.31},
+  {ticker:'T30J7',name:'BONCAP Jun 2027',maturity:'2027-06-30',price:107.75,vf:147.39}
 ];
 
 // =====================================================
@@ -1404,9 +1476,10 @@ function calcConvexity_semi(cashflows, dirtyPrice, semiRate){
 // LECAP RATES (kept for reuse)
 // =====================================================
 function calcLecapRates(price, vf, days){
-  const tna=(vf/price-1)*365/days;
-  const tem=Math.pow(vf/price, 30/days)-1;
-  const tea=Math.pow(1+tem,12)-1;
+  const tna=(vf/price-1)*365/days;                     // TNA: interés simple anualizado
+  const mRate=tna*30/365;                              // Tasa mensual implícita (30/365)
+  const tea=Math.pow(1+mRate, 12)-1;                    // TIR: 12 períodos mensuales (convención AR)
+  const tem=Math.pow(1+tea, 1/12)-1;                   // TEM: mensual efectiva desde TIR
   return {tem, tna, tea};
 }
 
@@ -1841,6 +1914,9 @@ function rebuildAndRefresh(){
     if(p==='ROFEX'){
       renderRofexPanel();
       renderRofexCharts();
+    } else if(p==='FORWARD'){
+      populateForwardCurves();
+      renderForwardMatrix();
     } else {
       renderPanel(PANEL_TABLES[p],p);
       renderYieldCharts(p);
@@ -2296,10 +2372,13 @@ function renderPanel(tableId, panelFilter){
   });
   let html = '';
   let lastCat = '';
+  let catIdx = 0;
   for(const inst of items){
     if(inst.category !== lastCat){
       lastCat = inst.category;
-      html += `<tr class="cat-header" data-cat="${lastCat}" onclick="toggleCategory(this)"><td colspan="11"><span class="cat-toggle">&#9660;</span>${lastCat}</td></tr>`;
+      const cc = CAT_COLORS[catIdx % CAT_COLORS.length];
+      html += `<tr class="cat-header" data-cat="${lastCat}" data-cat-idx="${catIdx}" onclick="toggleCategory(this)"><td colspan="11" style="background:${cc.bg};color:${cc.text}"><span class="cat-toggle">&#9660;</span>${lastCat}</td></tr>`;
+      catIdx++;
     }
     const id = inst.ticker;
     const fv = (v,d=2) => (!v||isNaN(v)) ? '' : (v*100).toFixed(d);
@@ -2325,6 +2404,15 @@ function renderPanel(tableId, panelFilter){
     inp.addEventListener('change', onCellChange);
     inp.addEventListener('keydown', cellNav);
     inp.addEventListener('focus', function(){ this.select(); });
+  });
+  // Row hover → highlight chart point
+  tbody.querySelectorAll('tr[data-ticker]').forEach(row=>{
+    row.addEventListener('mouseenter', function(){
+      highlightChartPoint(this.dataset.ticker, panelFilter);
+    });
+    row.addEventListener('mouseleave', function(){
+      clearChartHighlights(panelFilter);
+    });
   });
 }
 
@@ -2439,6 +2527,7 @@ function autoSave(){
 }
 
 function updateRowDOM(inst){
+  if(inst.calcType === 'futures') return; // ROFEX has its own renderer
   const row = document.querySelector(`tr[data-ticker="${inst.ticker}"]`);
   if(!row) return;
   const fv = (v,d=2) => (!v||isNaN(v)) ? '' : (v*100).toFixed(d);
@@ -2512,8 +2601,8 @@ function showDetail(ticker){
     chartDetail = new Chart(ctx,{type:'bar',data:{
       labels:inst._flows.map(f=>f.date),
       datasets:[
-        {label:'Cupón',data:inst._flows.map(f=>f.coupon),backgroundColor:'rgba(212,132,62,.7)',borderRadius:2},
-        {label:'Amort',data:inst._flows.map(f=>f.amort),backgroundColor:'rgba(56,161,105,.7)',borderRadius:2}
+        {label:'Cupón',data:inst._flows.map(f=>f.coupon),backgroundColor:'rgba(194,112,58,.75)',borderRadius:2},
+        {label:'Amort',data:inst._flows.map(f=>f.amort),backgroundColor:'rgba(139,105,20,.7)',borderRadius:2}
       ]
     },options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:`Flujo de Fondos - ${inst.ticker}`,font:{size:12}}},scales:{x:{ticks:{maxTicksLimit:12}},y:{title:{display:true,text:'c/100 VN'}}}}});
   }
@@ -2681,6 +2770,7 @@ function switchTab(panel){
   document.getElementById('tabBtn'+panel).classList.add('active');
   document.getElementById('pane'+panel).classList.add('active');
   closeDetail();
+  if(panel==='FORWARD'){ renderForwardMatrix(); return; }
   updateYieldCharts(panel);
 }
 
@@ -2864,8 +2954,11 @@ function renderYieldCharts(panel){
     }
   }
 
+  let catColorIdx = 0;
   for(const cat of cats){
     const key = panel+'_'+cat.replace(/[^a-zA-Z0-9]/g,'');
+    const cc = CHART_COLORS[catColorIdx % CHART_COLORS.length];
+    catColorIdx++;
     const insts = catMap[cat];
     const bidPoints = [];
     const askPoints = [];
@@ -2888,36 +2981,55 @@ function renderYieldCharts(panel){
     }
 
     const datasets = [
-      {label:'Bid '+metric, data:bidPoints, backgroundColor:'rgba(212,132,62,.8)', borderColor:'rgba(212,132,62,.8)', pointRadius:5, pointHoverRadius:7, showLine:false, tickers:bidLabels},
-      {label:'Ask '+metric, data:askPoints, backgroundColor:'rgba(229,62,62,.6)', borderColor:'rgba(229,62,62,.6)', pointRadius:4, pointStyle:'triangle', pointHoverRadius:6, showLine:false, tickers:askLabels}
+      {label:'Bid '+metric, data:bidPoints, backgroundColor:cc.fill, borderColor:cc.border, pointRadius:5, pointHoverRadius:9, showLine:false, tickers:bidLabels},
+      {label:'Ask '+metric, data:askPoints, backgroundColor:'rgba(139,69,19,.45)', borderColor:'rgba(139,69,19,.6)', pointRadius:4, pointStyle:'triangle', pointHoverRadius:8, showLine:false, tickers:askLabels}
     ];
 
     // Log fit curves
     const bidCurve = fitLogCurve(bidPoints);
     if(bidCurve){
       datasets.push({
-        label:'Bid fit', data:bidCurve, borderColor:'rgba(212,132,62,.35)', backgroundColor:'transparent',
+        label:'Bid fit', data:bidCurve, borderColor:cc.fillLight, backgroundColor:'transparent',
         borderWidth:2, borderDash:[4,3], pointRadius:0, showLine:true, tension:0.4, type:'line'
       });
     }
     const askCurve = fitLogCurve(askPoints);
     if(askCurve){
       datasets.push({
-        label:'Ask fit', data:askCurve, borderColor:'rgba(229,62,62,.3)', backgroundColor:'transparent',
+        label:'Ask fit', data:askCurve, borderColor:'rgba(139,69,19,.25)', backgroundColor:'transparent',
         borderWidth:2, borderDash:[4,3], pointRadius:0, showLine:true, tension:0.4, type:'line'
       });
     }
 
     const canvas = document.getElementById('yc_'+key);
     if(!canvas) continue;
+    const chartPanel = panel;
     yieldCharts[key] = new Chart(canvas.getContext('2d'),{
       type:'scatter',
       data:{datasets},
       options:{
         responsive:true, maintainAspectRatio:false,
+        onHover: function(evt, elements){
+          // Clear previous highlights
+          document.querySelectorAll('.chart-highlight').forEach(r=>r.classList.remove('chart-highlight'));
+          if(elements.length > 0){
+            const el = elements[0];
+            const ds = this.data.datasets[el.datasetIndex];
+            if(ds.tickers && ds.tickers[el.index]){
+              const ticker = ds.tickers[el.index];
+              const row = document.querySelector('tr[data-ticker="'+ticker+'"]');
+              if(row){ row.classList.add('chart-highlight'); row.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+            }
+          }
+        },
         plugins:{
           legend:{display:false},
           tooltip:{
+            backgroundColor:'rgba(90,58,26,.9)',
+            titleFont:{size:11,weight:'bold'},
+            bodyFont:{size:10},
+            padding:8,
+            cornerRadius:6,
             callbacks:{
               label: function(ctx){
                 const ds = ctx.dataset;
@@ -2929,8 +3041,8 @@ function renderYieldCharts(panel){
           }
         },
         scales:{
-          x:{title:{display:true,text:'Duration (años)',font:{size:9}},ticks:{font:{size:9}}},
-          y:{title:{display:true,text:metricLabel,font:{size:9}},ticks:{font:{size:9},callback:v=>v.toFixed(1)+'%'}}
+          x:{title:{display:true,text:'Duration (años)',font:{size:9}},ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}},
+          y:{title:{display:true,text:metricLabel,font:{size:9}},ticks:{font:{size:9},callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(0,0,0,.05)'}}
         }
       }
     });
@@ -2943,7 +3055,34 @@ function updateYieldCharts(panel){
     panel = active?.id?.includes('USD') ? 'USD' : 'ARS';
   }
   if(panel==='ROFEX'){ renderRofexCharts(); return; }
+  if(panel==='FORWARD'){ renderForwardMatrix(); return; }
   renderYieldCharts(panel);
+}
+
+// Table row hover → highlight chart point
+function highlightChartPoint(ticker, panel){
+  for(const [k, chart] of Object.entries(yieldCharts)){
+    if(!k.startsWith(panel+'_')) continue;
+    let found = false;
+    chart.data.datasets.forEach((ds, dsi) => {
+      if(!ds.tickers) return;
+      const idx = ds.tickers.indexOf(ticker);
+      if(idx >= 0){
+        chart.setActiveElements([{datasetIndex:dsi, index:idx}]);
+        chart.tooltip.setActiveElements([{datasetIndex:dsi, index:idx}], {x:0,y:0});
+        found = true;
+      }
+    });
+    if(found) chart.update('none');
+  }
+}
+function clearChartHighlights(panel){
+  for(const [k, chart] of Object.entries(yieldCharts)){
+    if(!k.startsWith(panel+'_')) continue;
+    chart.setActiveElements([]);
+    chart.tooltip.setActiveElements([],{x:0,y:0});
+    chart.update('none');
+  }
 }
 
 // =====================================================
@@ -2995,6 +3134,8 @@ async function fetchPrices(){
     }
     updateAllLastPx();
     ALL_PANELS.forEach(p=>updateYieldCharts(p));
+    populateForwardCurves();
+    renderForwardMatrix();
     toast('Precios actualizados ' + now + ' (' + json.count + ' símbolos)');
     DetachManager.broadcastDataUpdate();
   } catch(e){
@@ -3061,7 +3202,11 @@ function snapshotState(){
     if(m) metrics['yieldMetric'+p] = m.value;
   });
   const tabOrder = loadTabOrder();
-  return { instruments, gridSplit, activeTab, spot: currentSpot, tabOrder, ...metrics };
+  // Forward selections
+  const fwdCurve = document.getElementById('fwdCurveSelect')?.value || '';
+  const fwdBase = document.getElementById('fwdBaseSelect')?.value || 'TNA';
+  const fwdSide = document.getElementById('fwdSideSelect')?.value || 'bid';
+  return { instruments, gridSplit, activeTab, spot: currentSpot, tabOrder, fwdCurve, fwdBase, fwdSide, ...metrics };
 }
 
 function saveCurrentView(){
@@ -3098,7 +3243,7 @@ function loadProfile(name){
   }
   // Re-render tables
   ALL_PANELS.forEach(p=>{
-    if(p==='ROFEX') return;
+    if(p==='ROFEX' || p==='FORWARD') return;
     renderPanel(PANEL_TABLES[p], p);
   });
   // Restore spot and Rofex
@@ -3128,8 +3273,23 @@ function loadProfile(name){
       if(m) m.value = profile[key];
     }
   });
+  // Restore forward selections
+  if(profile.fwdCurve){
+    const fcs = document.getElementById('fwdCurveSelect');
+    if(fcs) fcs.value = profile.fwdCurve;
+  }
+  if(profile.fwdBase){
+    const fbs = document.getElementById('fwdBaseSelect');
+    if(fbs) fbs.value = profile.fwdBase;
+  }
+  if(profile.fwdSide){
+    const fss = document.getElementById('fwdSideSelect');
+    if(fss) fss.value = profile.fwdSide;
+  }
+  populateForwardCurves();
+  renderForwardMatrix();
   // Re-render charts
-  ALL_PANELS.filter(p=>p!=='ROFEX').forEach(p=>updateYieldCharts(p));
+  ALL_PANELS.filter(p=>p!=='ROFEX' && p!=='FORWARD').forEach(p=>updateYieldCharts(p));
   renderRofexCharts();
 }
 
@@ -3241,49 +3401,85 @@ function applyCorpFilter(panel){
 // =====================================================
 // ROFEX FUTURES FUNCTIONS
 // =====================================================
+function calcImpliedRate(price, spot, days, type){
+  if(spot <= 0 || price <= 0 || days <= 0) return 0;
+  if(type==='TNA') return (price / spot - 1) * (365 / days);
+  if(type==='TEA') return Math.pow(price / spot, 365 / days) - 1;
+  if(type==='TEM') return Math.pow(price / spot, 30 / days) - 1;
+  return 0;
+}
+
 function recalcFutures(inst){
   const spot = currentSpot;
   const mat = parseDate(inst.data.maturity);
   const today = new Date();
   const days = Math.max(1, Math.round((mat - today) / (1000*60*60*24)));
   inst.dtm = days;
+  // Basis from last or bid
   const price = inst.lastPx || inst.bidPx || 0;
-  if(spot > 0 && price > 0){
-    inst.basis = price - spot;
-    inst.impliedTNA = (price / spot - 1) * (365 / days);
-    inst.impliedTEA = Math.pow(price / spot, 365 / days) - 1;
-    inst.impliedTEM = Math.pow(price / spot, 30 / days) - 1;
-  } else {
-    inst.basis = 0;
-    inst.impliedTNA = 0;
-    inst.impliedTEA = 0;
-    inst.impliedTEM = 0;
-  }
+  inst.basis = (spot > 0 && price > 0) ? price - spot : 0;
+  // Implied rates per side (bid, last, ask)
+  inst.impliedTNA_bid = calcImpliedRate(inst.bidPx, spot, days, 'TNA');
+  inst.impliedTNA_last = calcImpliedRate(inst.lastPx, spot, days, 'TNA');
+  inst.impliedTNA_ask = calcImpliedRate(inst.askPx, spot, days, 'TNA');
+  inst.impliedTEA_bid = calcImpliedRate(inst.bidPx, spot, days, 'TEA');
+  inst.impliedTEA_last = calcImpliedRate(inst.lastPx, spot, days, 'TEA');
+  inst.impliedTEA_ask = calcImpliedRate(inst.askPx, spot, days, 'TEA');
+  inst.impliedTEM_bid = calcImpliedRate(inst.bidPx, spot, days, 'TEM');
+  inst.impliedTEM_last = calcImpliedRate(inst.lastPx, spot, days, 'TEM');
+  inst.impliedTEM_ask = calcImpliedRate(inst.askPx, spot, days, 'TEM');
+  // Keep legacy single values for charts
+  inst.impliedTNA = inst.impliedTNA_last || inst.impliedTNA_bid;
+  inst.impliedTEA = inst.impliedTEA_last || inst.impliedTEA_bid;
+  inst.impliedTEM = inst.impliedTEM_last || inst.impliedTEM_bid;
 }
 
 function renderRofexPanel(){
   const tbody = document.querySelector('#tblROFEX tbody');
   if(!tbody) return;
-  const items = allInstruments.filter(i=>i.panel==='ROFEX');
+  // Only show contracts with live API data (skip stale profile-only prices)
+  const items = allInstruments.filter(i=>i.panel==='ROFEX' && (i.bidPx > 0 || i.lastPx > 0 || i.askPx > 0));
   items.sort((a,b)=>(a.dtm||9999)-(b.dtm||9999));
   const fmtN = (v,d)=> v ? v.toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '-';
   const fmtPct = (v)=> v ? (v*100).toFixed(2)+'%' : '-';
   let html = '';
+  // SPOT row — fallback to currentSpot when BCRA unavailable
+  const sBid = spotData.compra || 0;
+  const sLast = spotData.mayorista || currentSpot || 0;
+  const sAsk = spotData.venta || 0;
+  const spotStyle = 'background:#fef9f0;font-weight:600';
+  html += `<tr style="${spotStyle}">
+    <td style="text-align:left;font-weight:700;color:var(--primary)">SPOT</td>
+    <td>—</td>
+    <td>${sBid>0?fmtN(sBid,2):'—'}</td>
+    <td style="font-weight:700">${sLast>0?fmtN(sLast,2):'—'}</td>
+    <td>${sAsk>0?fmtN(sAsk,2):'—'}</td>
+    <td>—</td><td>—</td><td>—</td>
+    <td>—</td><td>—</td><td>—</td>
+    <td>—</td><td>—</td><td>—</td>
+    <td>—</td><td>—</td><td>—</td>
+  </tr>`;
+  // Futures rows
   for(const inst of items){
-    const px = inst.lastPx || 0;
+    const basisColor = inst.basis>0?'var(--red)':inst.basis<0?'var(--green)':'inherit';
     html += `<tr data-ticker="${inst.ticker}">
       <td style="text-align:left;font-weight:600">${inst._position}</td>
-      <td style="text-align:left;font-size:.6rem;color:var(--text-light)">${inst.ticker}</td>
-      <td class="last-px">${px?fmtN(px,2):'-'}</td>
+      <td>${inst.dtm||'-'}</td>
       <td>${inst.bidPx?fmtN(inst.bidPx,2):'-'}</td>
+      <td class="last-px">${inst.lastPx?fmtN(inst.lastPx,2):'-'}</td>
       <td>${inst.askPx?fmtN(inst.askPx,2):'-'}</td>
       <td style="font-size:.58rem">${inst.oi?fmtN(inst.oi,0):'-'}</td>
       <td style="font-size:.58rem">${inst.vol?fmtN(inst.vol,0):'-'}</td>
-      <td>${inst.dtm||'-'}</td>
-      <td style="color:${inst.basis>0?'var(--red)':inst.basis<0?'var(--green)':'inherit'}">${inst.basis?fmtN(inst.basis,2):'-'}</td>
-      <td style="font-weight:600;color:var(--accent)">${fmtPct(inst.impliedTNA)}</td>
-      <td>${fmtPct(inst.impliedTEA)}</td>
-      <td>${fmtPct(inst.impliedTEM)}</td>
+      <td style="color:${basisColor}">${inst.basis?fmtN(inst.basis,2):'-'}</td>
+      <td style="font-weight:600;color:var(--accent)">${fmtPct(inst.impliedTNA_bid)}</td>
+      <td style="font-weight:600;color:var(--accent)">${fmtPct(inst.impliedTNA_last)}</td>
+      <td style="font-weight:600;color:var(--accent)">${fmtPct(inst.impliedTNA_ask)}</td>
+      <td>${fmtPct(inst.impliedTEA_bid)}</td>
+      <td>${fmtPct(inst.impliedTEA_last)}</td>
+      <td>${fmtPct(inst.impliedTEA_ask)}</td>
+      <td>${fmtPct(inst.impliedTEM_bid)}</td>
+      <td>${fmtPct(inst.impliedTEM_last)}</td>
+      <td>${fmtPct(inst.impliedTEM_ask)}</td>
     </tr>`;
   }
   tbody.innerHTML = html;
@@ -3307,6 +3503,7 @@ async function fetchSpot(){
     const json = await res.json();
     if(json.mayorista > 0){
       currentSpot = json.mayorista;
+      spotData = {compra: json.compra||0, venta: json.venta||0, mayorista: json.mayorista, fecha: json.fecha||''};
       const input = document.getElementById('spotInput');
       if(input) input.value = currentSpot.toFixed(2);
       localStorage.setItem('rfSpotManual', currentSpot.toString());
@@ -3328,18 +3525,39 @@ async function fetchRofexPrices(){
     const json = await res.json();
     if(!json.data) return;
     const rofexItems = allInstruments.filter(i=>i.panel==='ROFEX');
+    let matched = 0;
     for(const inst of rofexItems){
       const sym = inst._iolSymbol;
-      // Try multiple symbol formats
+      // Try multiple symbol formats (Primary uses DLR/MAR26, IOL uses DLR/MAR26 or DLRMAR26)
       const d = json.data[sym] || json.data[inst.ticker] || json.data[sym?.replace('/','')] || null;
       if(d){
         if(d.last > 0) inst.lastPx = d.last;
+        else if(d.settle > 0) inst.lastPx = d.settle; // settle as fallback
         if(d.bid > 0) inst.bidPx = d.bid;
         if(d.ask > 0) inst.askPx = d.ask;
+        if(d.prevClose > 0) inst.prevClose = d.prevClose;
         if(d.oi > 0) inst.oi = d.oi;
         if(d.vol > 0) inst.vol = d.vol;
+        inst._hasLiveData = true;
+        recalcFutures(inst);
+        matched++;
+      } else {
+        // No API data — clear stale profile prices to avoid showing misleading data
+        inst._hasLiveData = false;
+        inst.bidPx = 0; inst.askPx = 0; inst.lastPx = 0;
+        inst.oi = 0; inst.vol = 0;
         recalcFutures(inst);
       }
+    }
+    // Show source in spot status
+    const srcMap = {'primary':'MATBA ROFEX (Primary)','iol':'IOL','primary+iol':'Primary + IOL'};
+    const src = srcMap[json.source] || json.source;
+    const statusEl = document.getElementById('spotStatus');
+    if(statusEl && matched > 0){
+      const now = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const existing = statusEl.textContent;
+      const spotPart = existing.includes('BCRA') || existing.includes('ambito') ? existing.split('|')[0].trim() : existing;
+      statusEl.textContent = `${spotPart} | Futuros: ${src} ${now} (${matched} contr.)`;
     }
     renderRofexPanel();
     renderRofexCharts();
@@ -3375,15 +3593,16 @@ function renderRofexCharts(){
       datasets:[{
         label:'Precio',
         data:items.map(i=>({x:i.dtm, y:i.lastPx})),
-        backgroundColor:'rgba(212,132,62,.7)',
-        borderColor:'rgba(212,132,62,1)',
+        backgroundColor:'rgba(212,85,10,.75)',
+        borderColor:'rgba(212,85,10,1)',
         pointRadius:5,
+        pointHoverRadius:9,
         showLine:true,
         tension:0.3
       },{
         label:'Spot',
         data: currentSpot>0 ? [{x:0,y:currentSpot},{x:Math.max(...items.map(i=>i.dtm)),y:currentSpot}] : [],
-        borderColor:'rgba(229,62,62,.5)',
+        borderColor:'rgba(139,69,19,.5)',
         borderDash:[5,5],
         pointRadius:0,
         showLine:true,
@@ -3413,9 +3632,10 @@ function renderRofexCharts(){
         datasets:[{
           label:'TNA impl.',
           data:tnaItems.map(i=>({x:i.dtm, y:i.impliedTNA*100})),
-          backgroundColor:'rgba(56,161,105,.7)',
-          borderColor:'rgba(56,161,105,1)',
+          backgroundColor:'rgba(163,98,32,.75)',
+          borderColor:'rgba(163,98,32,1)',
           pointRadius:5,
+          pointHoverRadius:9,
           showLine:true,
           tension:0.3
         }]
@@ -3432,9 +3652,249 @@ function renderRofexCharts(){
   }
 }
 
-const ALL_PANELS = ['USD','ARS','PROV','CORP','CORPLINK','CORPTAMAR','ROFEX'];
-const PANEL_TABLES = {USD:'tblUSD',ARS:'tblARS',PROV:'tblPROV',CORP:'tblCORP',CORPLINK:'tblCORPLINK',CORPTAMAR:'tblCORPTAMAR',ROFEX:'tblROFEX'};
-const PANEL_NAMES = {USD:'Bonos USD',ARS:'Bonos Pesos',PROV:'Provinciales',CORP:'Corp USD',CORPLINK:'Corp USD Linked',CORPTAMAR:'Corp Tamar',ROFEX:'Rofex USD'};
+// =====================================================
+// FORWARD RATES — Matriz de tasas forward implícitas
+// =====================================================
+function populateForwardCurves(){
+  const sel = document.getElementById('fwdCurveSelect');
+  if(!sel) return;
+  const panelCats = {};
+  for(const inst of allInstruments){
+    if(inst.calcType === 'futures') continue;
+    const key = inst.panel + '::' + inst.category;
+    if(!panelCats[key]) panelCats[key] = [];
+    panelCats[key].push(inst);
+  }
+  const curves = [];
+  for(const [key, items] of Object.entries(panelCats)){
+    const withYield = items.filter(i => i.bidTNA && isFinite(i.bidTNA) && i.bidTNA !== 0);
+    if(withYield.length >= 2){
+      const [panel, cat] = key.split('::');
+      curves.push({value:key, label: cat + ' ('+PANEL_NAMES[panel]+') — '+withYield.length+' inst.'});
+    }
+  }
+  const prev = sel.value;
+  sel.innerHTML = curves.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+  if(prev && curves.find(c=>c.value===prev)) sel.value = prev;
+}
+
+function getInstYield(inst, base, side){
+  // Get yield in the requested base and side
+  let tna_bid = inst.bidTNA || 0;
+  let tna_ask = inst.askTNA || 0;
+  let tna = side==='ask' ? tna_ask : side==='mid' ? ((tna_bid+tna_ask)/2 || tna_bid) : tna_bid;
+  if(!tna || !isFinite(tna)) return null;
+  if(base === 'TNA') return tna;
+  // Convert TNA to TEA: TEA = (1 + TNA*d/365)^(365/d) - 1 for simple; for lecaps use TIR directly
+  if(base === 'TEA'){
+    if(side==='bid' && inst.bidTIR && isFinite(inst.bidTIR)) return inst.bidTIR;
+    // Approximate from TNA
+    const d = inst.dtm || 365;
+    return Math.pow(1 + tna * d / 365, 365/d) - 1;
+  }
+  if(base === 'TEM'){
+    if(side==='bid' && inst.bidTEM && isFinite(inst.bidTEM)) return inst.bidTEM;
+    const d = inst.dtm || 365;
+    const tea = Math.pow(1 + tna * d / 365, 365/d) - 1;
+    return Math.pow(1 + tea, 1/12) - 1;
+  }
+  return tna;
+}
+
+function calcForwardRate(yi, di, yj, dj, base){
+  const delta = dj - di;
+  if(delta <= 0 || !yi || !yj || !isFinite(yi) || !isFinite(yj)) return null;
+  if(base === 'TNA'){
+    const fi = 1 + yi * di / 365;
+    const fj = 1 + yj * dj / 365;
+    if(fi <= 0) return null;
+    return (fj / fi - 1) * 365 / delta;
+  }
+  // For TEA and TEM, accumulate with TEA then convert
+  let tea_i = yi, tea_j = yj;
+  if(base === 'TEM'){
+    // Convert TEM to TEA for calculation
+    tea_i = Math.pow(1 + yi, 12) - 1;
+    tea_j = Math.pow(1 + yj, 12) - 1;
+  }
+  const fi = Math.pow(1 + tea_i, di / 365);
+  const fj = Math.pow(1 + tea_j, dj / 365);
+  if(fi <= 0 || !isFinite(fi) || !isFinite(fj)) return null;
+  const fwdTEA = Math.pow(fj / fi, 365 / delta) - 1;
+  if(!isFinite(fwdTEA)) return null;
+  if(base === 'TEA') return fwdTEA;
+  if(base === 'TEM') return Math.pow(1 + fwdTEA, 1/12) - 1;
+  return null;
+}
+
+let forwardCharts = {};
+function renderForwardMatrix(){
+  const container = document.getElementById('forwardMatrixContainer');
+  if(!container) return;
+  const curveKey = document.getElementById('fwdCurveSelect')?.value;
+  const base = document.getElementById('fwdBaseSelect')?.value || 'TNA';
+  const side = document.getElementById('fwdSideSelect')?.value || 'bid';
+  if(!curveKey){ container.innerHTML = '<div style="padding:1rem;font-size:.7rem;color:var(--text-light)">Seleccione una curva</div>'; return; }
+  const [panel, cat] = curveKey.split('::');
+  // Get instruments with yields, sorted by DTM
+  const items = allInstruments.filter(i => i.panel === panel && i.category === cat)
+    .map(i => ({ticker:i.ticker, dtm:i.dtm||0, y:getInstYield(i, base, side)}))
+    .filter(i => i.y && isFinite(i.y) && i.dtm > 0)
+    .sort((a,b) => a.dtm - b.dtm);
+  if(items.length < 2){
+    container.innerHTML = '<div style="padding:1rem;font-size:.7rem;color:var(--text-light)">Insuficientes instrumentos con yield para esta curva</div>';
+    renderForwardCharts([], base);
+    return;
+  }
+  const fmt = (v) => {
+    if(v === null || v === undefined || !isFinite(v)) return '';
+    return (v * 100).toFixed(2) + '%';
+  };
+  const cls = (v) => {
+    if(v === null || !isFinite(v)) return '';
+    if(v < 0) return ' fwd-negative';
+    if(Math.abs(v) > 0.6) return ' fwd-high';
+    return '';
+  };
+  // Build matrix HTML
+  let html = '<table class="fwd-matrix"><thead><tr>';
+  html += '<th class="fwd-corner">Desde \\ Hasta</th>';
+  for(const col of items){
+    html += `<th>${col.ticker}<span class="fwd-days">${col.dtm}d</span></th>`;
+  }
+  html += '</tr></thead><tbody>';
+  // Row 0: HOY (spot rates)
+  html += '<tr><td class="fwd-row-header">HOY<span class="fwd-days">0d</span></td>';
+  for(const col of items){
+    html += `<td class="fwd-spot${cls(col.y)}">${fmt(col.y)}</td>`;
+  }
+  html += '</tr>';
+  // Forward rows
+  for(let i = 0; i < items.length; i++){
+    html += `<tr><td class="fwd-row-header">${items[i].ticker}<span class="fwd-days">${items[i].dtm}d</span></td>`;
+    for(let j = 0; j < items.length; j++){
+      if(j <= i){
+        html += '<td class="fwd-diag">—</td>';
+      } else {
+        const fwd = calcForwardRate(items[i].y, items[i].dtm, items[j].y, items[j].dtm, base);
+        html += `<td class="fwd-cell${cls(fwd)}">${fmt(fwd)}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  // Update count
+  const countEl = document.getElementById('countFORWARD');
+  if(countEl) countEl.textContent = '';
+  // Render charts
+  renderForwardCharts(items, base);
+}
+
+function renderForwardCharts(items, base){
+  const container = document.getElementById('chartsFORWARD');
+  if(!container) return;
+  Object.values(forwardCharts).forEach(c=>{try{c.destroy();}catch(e){}});
+  forwardCharts = {};
+  if(!items || items.length < 2){
+    container.innerHTML = '<div style="padding:1rem;font-size:.7rem;color:var(--text-light)">Sin datos</div>';
+    return;
+  }
+  const baseLabel = base==='TEA' ? 'TEA %' : base==='TEM' ? 'TEM %' : 'TNA %';
+  container.innerHTML = '';
+  // Chart 1: Spot curve
+  const spotCard = document.createElement('div');
+  spotCard.className = 'yield-chart-card';
+  spotCard.innerHTML = '<h4 onclick="toggleChart(this.parentElement)"><span class="chart-toggle">&#9660;</span>Curva Spot</h4><div class="yield-chart-container" style="height:170px"><canvas></canvas></div><div class="chart-h-resizer"></div>';
+  container.appendChild(spotCard);
+  const ctx1 = spotCard.querySelector('canvas').getContext('2d');
+  forwardCharts.spot = new Chart(ctx1, {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Spot '+base, data:items.map(i=>({x:i.dtm, y:i.y*100})),
+      backgroundColor:CHART_COLORS[0].fill, borderColor:CHART_COLORS[0].border,
+      pointRadius:5, pointHoverRadius:9, showLine:true, tension:0.3
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(90,58,26,.9)',bodyFont:{size:10},callbacks:{
+        label:function(ctx){return items[ctx.dataIndex]?.ticker+': '+ctx.parsed.y.toFixed(2)+'%';}
+      }}},
+      scales:{x:{title:{display:true,text:'Días',font:{size:9}},ticks:{font:{size:8}},grid:{color:'rgba(0,0,0,.05)'}},
+              y:{title:{display:true,text:baseLabel,font:{size:9}},ticks:{font:{size:8},callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(0,0,0,.05)'}}}
+    }
+  });
+  // Chart 2: Forward curves from HOY and from first 3 instruments
+  const fwdSeries = [];
+  // From HOY (= spot, already shown, skip)
+  // From each instrument: forward to all later instruments
+  const maxSeries = Math.min(items.length - 1, 5);
+  for(let i = 0; i < maxSeries; i++){
+    const pts = [];
+    for(let j = i + 1; j < items.length; j++){
+      const fwd = calcForwardRate(items[i].y, items[i].dtm, items[j].y, items[j].dtm, base);
+      if(fwd !== null && isFinite(fwd)){
+        pts.push({x: items[j].dtm, y: fwd * 100});
+      }
+    }
+    if(pts.length > 0){
+      const cc = CHART_COLORS[(i+1) % CHART_COLORS.length];
+      fwdSeries.push({
+        label:'Desde '+items[i].ticker, data:pts,
+        backgroundColor:cc.fill, borderColor:cc.border,
+        pointRadius:4, pointHoverRadius:8, showLine:true, tension:0.3, borderWidth:2
+      });
+    }
+  }
+  if(fwdSeries.length > 0){
+    const fwdCard = document.createElement('div');
+    fwdCard.className = 'yield-chart-card';
+    fwdCard.innerHTML = '<h4 onclick="toggleChart(this.parentElement)"><span class="chart-toggle">&#9660;</span>Curvas Forward</h4><div class="yield-chart-container" style="height:220px"><canvas></canvas></div><div class="chart-h-resizer"></div>';
+    container.appendChild(fwdCard);
+    const ctx2 = fwdCard.querySelector('canvas').getContext('2d');
+    forwardCharts.fwd = new Chart(ctx2, {
+      type:'scatter',
+      data:{datasets:fwdSeries},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{font:{size:8},boxWidth:10}},
+          tooltip:{backgroundColor:'rgba(90,58,26,.9)',bodyFont:{size:10},callbacks:{
+            label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+'%';}
+          }}},
+        scales:{x:{title:{display:true,text:'Días (hasta)',font:{size:9}},ticks:{font:{size:8}},grid:{color:'rgba(0,0,0,.05)'}},
+                y:{title:{display:true,text:baseLabel+' forward',font:{size:9}},ticks:{font:{size:8},callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(0,0,0,.05)'}}}
+      }
+    });
+  }
+}
+
+const ALL_PANELS = ['USD','ARS','PROV','CORP','CORPLINK','CORPTAMAR','ROFEX','FORWARD'];
+const PANEL_TABLES = {USD:'tblUSD',ARS:'tblARS',PROV:'tblPROV',CORP:'tblCORP',CORPLINK:'tblCORPLINK',CORPTAMAR:'tblCORPTAMAR',ROFEX:'tblROFEX',FORWARD:'tblFORWARD'};
+const PANEL_NAMES = {USD:'Bonos USD',ARS:'Bonos Pesos',PROV:'Provinciales',CORP:'Corp USD',CORPLINK:'Corp USD Linked',CORPTAMAR:'Corp Tamar',ROFEX:'Rofex USD',FORWARD:'Tasas Forward'};
+const CAT_COLORS = [
+  {bg:'linear-gradient(135deg,#b45309,#d97706)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#92400e,#b45309)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#a0522d,#cd853f)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#c2703a,#e09060)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#8b6914,#b8860b)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#6d4c20,#a67c52)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#d4550a,#f07030)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#7c4a1e,#b87333)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#a36220,#d4943a)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#8b4513,#c4762e)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#cc7722,#e8a848)',text:'#fff'},
+  {bg:'linear-gradient(135deg,#5a3a1a,#8b6538)',text:'#fff'},
+];
+const CHART_COLORS = [
+  {fill:'rgba(180,83,9,.75)', border:'rgba(180,83,9,1)', fillLight:'rgba(180,83,9,.35)'},
+  {fill:'rgba(146,64,14,.75)', border:'rgba(146,64,14,1)', fillLight:'rgba(146,64,14,.35)'},
+  {fill:'rgba(160,82,45,.75)', border:'rgba(160,82,45,1)', fillLight:'rgba(160,82,45,.35)'},
+  {fill:'rgba(194,112,58,.75)', border:'rgba(194,112,58,1)', fillLight:'rgba(194,112,58,.35)'},
+  {fill:'rgba(139,105,20,.75)', border:'rgba(139,105,20,1)', fillLight:'rgba(139,105,20,.35)'},
+  {fill:'rgba(109,76,32,.75)', border:'rgba(109,76,32,1)', fillLight:'rgba(109,76,32,.35)'},
+  {fill:'rgba(212,85,10,.75)', border:'rgba(212,85,10,1)', fillLight:'rgba(212,85,10,.35)'},
+  {fill:'rgba(124,74,30,.75)', border:'rgba(124,74,30,1)', fillLight:'rgba(124,74,30,.35)'},
+  {fill:'rgba(163,98,32,.75)', border:'rgba(163,98,32,1)', fillLight:'rgba(163,98,32,.35)'},
+  {fill:'rgba(139,69,19,.75)', border:'rgba(139,69,19,1)', fillLight:'rgba(139,69,19,.35)'},
+];
 
 // =====================================================
 // TAB REORDERING (SortableJS)
@@ -3823,7 +4283,7 @@ document.addEventListener('DOMContentLoaded',function(){
     else recalcRow(inst);
   });
   ALL_PANELS.forEach(p=>{
-    if(p==='ROFEX') return; // Rofex has custom renderer
+    if(p==='ROFEX' || p==='FORWARD') return; // Custom renderers
     renderPanel(PANEL_TABLES[p], p);
     const cnt = allInstruments.filter(i=>i.panel===p).length;
     const el = document.getElementById('count'+p);
@@ -3842,6 +4302,9 @@ document.addEventListener('DOMContentLoaded',function(){
   const rofexEl = document.getElementById('countROFEX');
   if(rofexEl) rofexEl.textContent = `${rofexCnt}`;
   renderRofexCharts();
+  // Forward init
+  populateForwardCurves();
+  renderForwardMatrix();
   updateClock();
   setInterval(updateClock,1000);
   // Populate corp filters
@@ -3851,8 +4314,8 @@ document.addEventListener('DOMContentLoaded',function(){
   // Load saved profile
   renderProfileSelector();
   loadProfile(getActiveProfileName());
-  // Initial yield charts (skip ROFEX, has own charts)
-  ALL_PANELS.filter(p=>p!=='ROFEX').forEach(p=>renderYieldCharts(p));
+  // Initial yield charts (skip ROFEX & FORWARD, have own charts)
+  ALL_PANELS.filter(p=>p!=='ROFEX' && p!=='FORWARD').forEach(p=>renderYieldCharts(p));
   // Fetch live prices on load + every 30s
   fetchPrices();
   setInterval(fetchPrices, 30000);
