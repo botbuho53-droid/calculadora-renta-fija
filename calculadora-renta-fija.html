@@ -1092,19 +1092,19 @@ const DUALES_TAMAR = [
 // Convención TNA: Plazo remanente (interés simple anualizado)
 // =====================================================
 const LECAPS = [
-  {ticker:'S16M6',name:'LECAP Mar 2026',maturity:'2026-03-16',price:103.88,vf:104.63},
-  {ticker:'S17A6',name:'LECAP Abr 2026',maturity:'2026-04-17',price:106.45,vf:110.12},
-  {ticker:'S30A6',name:'LECAP Abr 2026',maturity:'2026-04-30',price:121.96,vf:127.44},
-  {ticker:'S29Y6',name:'LECAP May 2026',maturity:'2026-05-29',price:123.52,vf:131.88},
-  {ticker:'T30J6',name:'BONCAP Jun 2026',maturity:'2026-06-30',price:132.15,vf:144.47},
-  {ticker:'S31L6',name:'LECAP Jul 2026',maturity:'2026-07-31',price:104.80,vf:117.11},
-  {ticker:'S31G6',name:'LECAP Ago 2026',maturity:'2026-08-31',price:110.49,vf:126.09},
-  {ticker:'S30O6',name:'LECAP Oct 2026',maturity:'2026-10-30',price:111.89,vf:133.38},
-  {ticker:'S30N6',name:'LECAP Nov 2026',maturity:'2026-11-30',price:105.24,vf:127.49},
-  {ticker:'T15E7',name:'BONCAP Ene 2027',maturity:'2027-01-15',price:124.60,vf:157.10},
-  {ticker:'T30A7',name:'BONCAP Abr 2027',maturity:'2027-04-30',price:112.45,vf:150.56},
-  {ticker:'T31Y7',name:'BONCAP May 2027',maturity:'2027-05-31',price:106.50,vf:144.31},
-  {ticker:'T30J7',name:'BONCAP Jun 2027',maturity:'2027-06-30',price:107.75,vf:147.39}
+  {ticker:'S16M6',name:'LECAP Mar 2026',maturity:'2026-03-16',price:103.88,vf:104.6211},
+  {ticker:'S17A6',name:'LECAP Abr 2026',maturity:'2026-04-17',price:106.45,vf:110.1251},
+  {ticker:'S30A6',name:'LECAP Abr 2026',maturity:'2026-04-30',price:121.96,vf:127.4863},
+  {ticker:'S29Y6',name:'LECAP May 2026',maturity:'2026-05-29',price:123.52,vf:132.0438},
+  {ticker:'T30J6',name:'BONCAP Jun 2026',maturity:'2026-06-30',price:132.15,vf:144.8957},
+  {ticker:'S31L6',name:'LECAP Jul 2026',maturity:'2026-07-31',price:104.80,vf:117.6768},
+  {ticker:'S31G6',name:'LECAP Ago 2026',maturity:'2026-08-31',price:110.49,vf:127.0637},
+  {ticker:'S30O6',name:'LECAP Oct 2026',maturity:'2026-10-30',price:111.89,vf:135.2782},
+  {ticker:'S30N6',name:'LECAP Nov 2026',maturity:'2026-11-30',price:105.24,vf:129.8882},
+  {ticker:'T15E7',name:'BONCAP Ene 2027',maturity:'2027-01-15',price:124.60,vf:161.1038},
+  {ticker:'T30A7',name:'BONCAP Abr 2027',maturity:'2027-04-30',price:112.45,vf:157.3410},
+  {ticker:'T31Y7',name:'BONCAP May 2027',maturity:'2027-05-31',price:106.50,vf:151.5628},
+  {ticker:'T30J7',name:'BONCAP Jun 2027',maturity:'2027-06-30',price:107.75,vf:156.0373}
 ];
 
 // =====================================================
@@ -1476,10 +1476,9 @@ function calcConvexity_semi(cashflows, dirtyPrice, semiRate){
 // LECAP RATES (kept for reuse)
 // =====================================================
 function calcLecapRates(price, vf, days){
-  const tna=(vf/price-1)*365/days;                     // TNA: interés simple anualizado
-  const mRate=tna*30/365;                              // Tasa mensual implícita (30/365)
-  const tea=Math.pow(1+mRate, 12)-1;                    // TIR: 12 períodos mensuales (convención AR)
-  const tem=Math.pow(1+tea, 1/12)-1;                   // TEM: mensual efectiva desde TIR
+  const tea=Math.pow(vf/price, 365/days)-1;            // TIR: XIRR single-cashflow = (VF/P)^(365/d)-1
+  const tem=Math.pow(1+tea, 1/12)-1;                   // TEM: (1+TIR)^(1/12)-1
+  const tna=tem*12;                                    // TNA: TEM*12 (compuesta, convención MECON)
   return {tem, tna, tea};
 }
 
