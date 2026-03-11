@@ -1136,12 +1136,14 @@ const TASA_FIJA_ARS = {
 // =====================================================
 // CER (Coeficiente de Estabilización de Referencia) - Base 02/02/2002 = 1
 // Valores mensuales aproximados (día 15 de cada mes) - Fuente BCRA
+// CER_SERIES: valores del CER al 10° día hábil anterior de cada mes
+// Fuente: planilla Excel — CER ref para liquidación Feb 2026 = 711.34425
 const CER_SERIES = {
-  '2025-01':527.75,'2025-02':547.83,'2025-03':559.88,
-  '2025-04':573.30,'2025-05':594.50,'2025-06':611.14,
-  '2025-07':620.34,'2025-08':630.26,'2025-09':642.24,
-  '2025-10':654.43,'2025-11':668.16,'2025-12':683.52,
-  '2026-01':692.83,'2026-02':716.10,'2026-03':734.42
+  '2025-01':524.25,'2025-02':544.20,'2025-03':556.17,
+  '2025-04':569.49,'2025-05':590.56,'2025-06':607.08,
+  '2025-07':616.23,'2025-08':626.08,'2025-09':637.97,
+  '2025-10':650.09,'2025-11':663.73,'2025-12':679.08,
+  '2026-01':688.23,'2026-02':711.34425,'2026-03':729.55
 };
 
 // Retorna el CER del 10° día hábil anterior a dateStr (convención de mercado)
@@ -1182,7 +1184,7 @@ const BONCER_BONDS = {
   TX26: {
     ticker:'TX26',name:'BONCER 2026',maturity:'2026-11-09',
     couponRate:2.00,frequency:2,firstCoupon:'2021-05-09',
-    cerBase:22.5440, // CER 10 días hábiles antes de emisión (04/09/2020)
+    cerBase:22.543951, // CER 10 días hábiles antes de emisión (Excel I16)
     amortSchedule:[
       {date:'2024-11-09',pct:20},{date:'2025-05-09',pct:20},
       {date:'2025-11-09',pct:20},{date:'2026-05-09',pct:20},
@@ -1192,113 +1194,113 @@ const BONCER_BONDS = {
   },
   TX28: {
     ticker:'TX28',name:'BONCER 2028',maturity:'2028-11-09',
-    couponRate:2.25,frequency:2,firstCoupon:'2022-05-09',
-    cerBase:37.53, // Emitido con CER distinto a TX26
-    amortSchedule: generateEqualAmort('2027-05-09','2028-11-09',2),
+    couponRate:2.25,frequency:2,firstCoupon:'2021-05-09',
+    cerBase:22.543951, // Excel I16 — emisión 44078
+    amortSchedule: generateEqualAmort('2024-05-09','2028-11-09',2), // 10 pagos de 10%
     residualAt:function(d){return calcResidual(this.amortSchedule,d)}
   },
   TZXM7: {
     ticker:'TZXM7',name:'BONCER Mar 2027',maturity:'2027-03-31',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:363.74,
+    cerBase:361.317603,
     amortSchedule:[{date:'2027-03-31',pct:100}],
     residualAt:function(){return 100}
   },
   TZX27: {
     ticker:'TZX27',name:'BONCER Jun 2027',maturity:'2027-06-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:201.72,
+    cerBase:200.388015,
     amortSchedule:[{date:'2027-06-30',pct:100}],
     residualAt:function(){return 100}
   },
   TZXD7: {
-    ticker:'TZXD7',name:'BONCER Dic 2027',maturity:'2027-12-31',
+    ticker:'TZXD7',name:'BONCER Dic 2027',maturity:'2027-12-15',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:272.86,
-    amortSchedule:[{date:'2027-12-31',pct:100}],
+    cerBase:271.047556,
+    amortSchedule:[{date:'2027-12-15',pct:100}],
     residualAt:function(){return 100}
   },
   DICP: {
     ticker:'DICP',name:'Discount ARS (CER)',maturity:'2033-12-31',
     couponRate:5.83,frequency:2,firstCoupon:'2010-06-30',
-    cerBase:1.4551,
+    cerBase:1.1487, // CER emisión ajustado por capitalización de intereses (VN 100→130.89)
     amortSchedule: generateEqualAmort('2024-06-30','2033-12-31',2),
     residualAt:function(d){return calcResidual(this.amortSchedule,d)}
   },
   TZX28: {
     ticker:'TZX28',name:'LECER Jun 2028',maturity:'2028-06-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:201.72,
+    cerBase:200.388015,
     amortSchedule:[{date:'2028-06-30',pct:100}],
     residualAt:function(){return 100}
   },
   TZXM6: {
     ticker:'TZXM6',name:'LECER Mar 2026',maturity:'2026-03-31',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:339.28,
+    cerBase:337.034068,
     amortSchedule:[{date:'2026-03-31',pct:100}],
     residualAt:function(){return 100}
   },
   X15Y6: {
     ticker:'X15Y6',name:'BONCER May 15 2026',maturity:'2026-05-15',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:706.29,
+    cerBase:701.614029,
     amortSchedule:[{date:'2026-05-15',pct:100}],
     residualAt:function(){return 100}
   },
   X29Y6: {
     ticker:'X29Y6',name:'BONCER May 29 2026',maturity:'2026-05-29',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:656.22,
+    cerBase:651.898100,
     amortSchedule:[{date:'2026-05-29',pct:100}],
     residualAt:function(){return 100}
   },
   TZX26: {
     ticker:'TZX26',name:'LECER Jun 2026',maturity:'2026-06-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:201.72,
+    cerBase:200.388015,
     amortSchedule:[{date:'2026-06-30',pct:100}],
     residualAt:function(){return 100}
   },
   X31L6: {
     ticker:'X31L6',name:'BONCER Jul 2026',maturity:'2026-07-31',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:689.97,
+    cerBase:685.550612,
     amortSchedule:[{date:'2026-07-31',pct:100}],
     residualAt:function(){return 100}
   },
   TZXO6: {
     ticker:'TZXO6',name:'LECER Oct 2026',maturity:'2026-10-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:483.28,
+    cerBase:480.152578,
     amortSchedule:[{date:'2026-10-30',pct:100}],
     residualAt:function(){return 100}
   },
   X30N6: {
     ticker:'X30N6',name:'BONCER Nov 2026',maturity:'2026-11-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:663.97,
+    cerBase:659.678896,
     amortSchedule:[{date:'2026-11-30',pct:100}],
     residualAt:function(){return 100}
   },
   TZXD6: {
-    ticker:'TZXD6',name:'LECER Dic 2026',maturity:'2026-12-31',
+    ticker:'TZXD6',name:'LECER Dic 2026',maturity:'2026-12-15',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:272.86,
-    amortSchedule:[{date:'2026-12-31',pct:100}],
+    cerBase:271.047556,
+    amortSchedule:[{date:'2026-12-15',pct:100}],
     residualAt:function(){return 100}
   },
   TZXA7: {
     ticker:'TZXA7',name:'LECER Abr 2027',maturity:'2027-04-30',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:656.22,
+    cerBase:651.898100,
     amortSchedule:[{date:'2027-04-30',pct:100}],
     residualAt:function(){return 100}
   },
   TZXY7: {
     ticker:'TZXY7',name:'LECER May 2027',maturity:'2027-05-31',
     couponRate:0,frequency:0,firstCoupon:null,
-    cerBase:663.97,
+    cerBase:659.678896,
     amortSchedule:[{date:'2027-05-31',pct:100}],
     residualAt:function(){return 100}
   }
@@ -2365,6 +2367,7 @@ function recalcBoncer(inst, settlementStr){
   if(inst.bidPx <= 0) return;
 
   if(bond.couponRate === 0){
+    // ===== LECER (zero-coupon CER) =====
     const realDirty = inst.bidPx / cerRatio;
     const vtCapital = residual * cerRatio;
     inst.parity = (inst.bidPx / vtCapital) * 100;
@@ -2378,33 +2381,48 @@ function recalcBoncer(inst, settlementStr){
     inst.bidTEM = tem;
     inst.duration = days / 365;
   } else {
-    const flows = [];
+    // ===== Coupon BONCER (TX26, TX28, DICP) — XIRR sobre flujos nominales ARS =====
+    // Metodología Excel: cada flujo futuro se multiplica por CER_flat/CER_base
+    // CER_flat = último CER conocido (= cerNow) para TODOS los flujos futuros
     const couponDates = generateSemiannualDates(bond.firstCoupon, bond.maturity, null);
     const amortMap = {};
     for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+
+    // Build XIRR cashflows en ARS nominales
+    const amounts = [-inst.bidPx];
+    const dates = [settlement];
     let runRes = residual;
     for(const ds of couponDates){
       const dd = parseDate(ds);
       if(dd <= settlement) continue;
       const coupon = runRes*(bond.couponRate/100)/bond.frequency;
       const amort = amortMap[ds]||0;
+      // Flujo nominal ARS = (cupon + amort) * CER_flat / CER_base
+      const nominalARS = (coupon + amort) * cerRatio;
+      amounts.push(nominalARS);
+      dates.push(dd);
       runRes -= amort;
-      const days = daysBetween(settlement, dd);
-      const periods30 = days30_360(settlement, dd)/180;
-      flows.push({date:ds,days,periods30,coupon,amort,total:coupon+amort,residualAfter:runRes});
     }
-    if(flows.length === 0) return;
-    const realDirty = inst.bidPx / cerRatio;
+    if(amounts.length < 2) return;
+
     const vtARS = residual * cerRatio;
     inst.parity = (inst.bidPx / vtARS) * 100;
-    const {TNA, TEA, semiRate} = calcTNA_semi(flows, realDirty);
-    const {modDur} = calcModDuration_semi(flows, realDirty, semiRate);
-    inst.bidTNA = TNA;
-    inst.bidTIR = TEA;
-    inst.bidTEM = Math.pow(1+TEA, 1/12)-1;
-    inst.duration = modDur;
-    inst._flows = flows;
+
+    // TEA via XIRR (actual/365)
+    const tea = calcXIRR(amounts, dates, 0.1);
+    // TNA = BEY: ((1+TEA)^(1/2)-1)*2
+    const tna = (Math.pow(1+tea, 0.5) - 1) * 2;
+    const tem = Math.pow(1+tea, 1/12) - 1;
+
+    inst.bidTNA = tna;
+    inst.bidTIR = tea;
+    inst.bidTEM = tem;
+    inst.duration = daysBetween(settlement, maturity) / 365;
+    inst._xirr_amounts = amounts;
+    inst._xirr_dates = dates;
   }
+
+  // === Ask side ===
   if(inst.askPx > 0){
     if(bond.couponRate === 0){
       const realDirtyAsk = inst.askPx / cerRatio;
@@ -2412,6 +2430,13 @@ function recalcBoncer(inst, settlementStr){
       if(daysAsk > 0){
         const teaAsk = Math.pow(residual / realDirtyAsk, 365/daysAsk) - 1;
         inst.askTNA = (Math.pow(1+teaAsk, 1/12) - 1) * 12;
+      }
+    } else {
+      // Coupon BONCER ask: XIRR con askPx como outflow
+      if(inst._xirr_amounts && inst._xirr_amounts.length >= 2){
+        const amountsAsk = [-inst.askPx, ...inst._xirr_amounts.slice(1)];
+        const teaAsk = calcXIRR(amountsAsk, inst._xirr_dates, 0.1);
+        inst.askTNA = (Math.pow(1+teaAsk, 0.5) - 1) * 2;
       }
     }
   }
@@ -2469,12 +2494,32 @@ function priceFromTNA(inst, tna){
     const maturity = parseDate(bond.maturity);
     const residual = bond.residualAt(s);
     if(bond.couponRate === 0){
+      // LECER: TNA mensual → TEA → precio
       const days = daysBetween(settlement, maturity);
       if(days <= 0) return 0;
       const tem = tna / 12;
       const tea = Math.pow(1+tem, 12) - 1;
       const realDirty = residual / Math.pow(1+tea, days/365);
       return realDirty * cerRatio;
+    } else {
+      // Coupon BONCER: TNA (BEY) → TEA → descontar flujos nominales ARS
+      const tea = Math.pow(1+tna/2, 2) - 1;
+      const couponDates = generateSemiannualDates(bond.firstCoupon, bond.maturity, null);
+      const amortMap = {};
+      for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+      let runRes = residual;
+      let pv = 0;
+      for(const ds of couponDates){
+        const dd = parseDate(ds);
+        if(dd <= settlement) continue;
+        const coupon = runRes*(bond.couponRate/100)/bond.frequency;
+        const amort = amortMap[ds]||0;
+        const nominalARS = (coupon + amort) * cerRatio;
+        const t = daysBetween(settlement, dd) / 365;
+        pv += nominalARS / Math.pow(1+tea, t);
+        runRes -= amort;
+      }
+      return pv;
     }
   }
   return 0;
@@ -2535,23 +2580,23 @@ function priceFromTIR(inst, tea){
       const realDirty = residual / Math.pow(1+tea, days/365);
       return realDirty * cerRatio;
     } else {
-      const flows = [];
+      // Coupon BONCER: descontar flujos nominales ARS por TEA (actual/365)
       const couponDates = generateSemiannualDates(bond.firstCoupon, bond.maturity, null);
       const amortMap = {};
       for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
       let runRes = residual;
-      const semiRate = Math.pow(1+tea, 0.5) - 1;
       let pv = 0;
       for(const ds of couponDates){
         const dd = parseDate(ds);
         if(dd <= settlement) continue;
         const coupon = runRes*(bond.couponRate/100)/bond.frequency;
         const amort = amortMap[ds]||0;
+        const nominalARS = (coupon + amort) * cerRatio;
+        const t = daysBetween(settlement, dd) / 365;
+        pv += nominalARS / Math.pow(1+tea, t);
         runRes -= amort;
-        const periods30 = days30_360(settlement, dd)/180;
-        pv += (coupon+amort) / Math.pow(1+semiRate, periods30);
       }
-      return pv * cerRatio;
+      return pv;
     }
   }
   return 0;
