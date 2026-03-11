@@ -94,9 +94,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .chart-h-resizer{height:5px;cursor:row-resize;background:transparent;border-radius:0 0 6px 6px;transition:background .15s}
 .chart-h-resizer:hover,.chart-h-resizer.active{background:var(--accent);opacity:.5}
 .metric-selector{font-size:.7rem;padding:2px 6px;border:1px solid var(--border);border-radius:3px;background:#fff;cursor:pointer;font-family:inherit}
-.cell-input{width:50px;padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;text-align:right;background:transparent;font-family:inherit;transition:border-color .15s}
-.cell-input:hover{border-color:var(--border)}
-.cell-input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(212,132,62,.2)}
+.cell-input{width:50px;padding:1px 2px;border:1px solid rgba(220,210,160,.4);border-radius:3px;font-size:.64rem;text-align:right;background:rgba(255,250,205,.35);font-family:inherit;transition:border-color .15s}
+.cell-input:hover{border-color:var(--border);background:rgba(255,250,205,.55)}
+.cell-input:focus{outline:none;border-color:var(--accent);background:#fffde6;box-shadow:0 0 0 2px rgba(212,132,62,.2)}
 .cell-input.w40{width:40px}
 .cell-select{padding:1px 2px;border:1px solid transparent;border-radius:3px;font-size:.64rem;background:transparent;cursor:pointer;font-family:inherit}
 .cell-select:focus{outline:none;border-color:var(--accent)}
@@ -2480,6 +2480,83 @@ function priceFromTNA(inst, tna){
   return 0;
 }
 
+// Inverse: TIR (TEA) → Price
+function priceFromTIR(inst, tea){
+  const s = getSettlement(inst);
+  if(inst.calcType === 'bond'){
+    const bond = inst.data;
+    const {flows} = generateCashflows(bond, s);
+    if(flows.length === 0) return 0;
+    const semiRate = Math.pow(1+tea, 0.5) - 1;
+    let pv = 0;
+    for(const cf of flows) pv += cf.total / Math.pow(1+semiRate, cf.periods30);
+    const accr = calcAccruedInterest(bond, s);
+    return pv - accr;
+  } else if(inst.calcType === 'tasafija'){
+    const data = inst.data;
+    const settlement = parseDate(s);
+    const couponDates = data.couponDates(null);
+    let residual = 100;
+    for(const a of data.amortSchedule){ if(parseDate(a.date)<=settlement) residual -= a.pct; }
+    const amortMap = {};
+    for(const a of data.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+    let pv = 0, running = residual;
+    for(const ds of couponDates){
+      const d = parseDate(ds);
+      if(d <= settlement) continue;
+      const coupon = running * (data.couponRate/100) / data.frequency;
+      const amort = amortMap[ds] || 0;
+      const t = daysBetween(settlement, d) / 365;
+      pv += (coupon + amort) / Math.pow(1+tea, t);
+      running -= amort;
+    }
+    return pv;
+  } else if(inst.calcType === 'lecap'){
+    const d = inst.data;
+    const maturity = parseDate(d.maturity);
+    const days = daysBetween(parseDate(s), maturity);
+    if(days <= 0) return 0;
+    let vf = d.vf || 100;
+    if(d.tem && d.emission){
+      const months = days30_360(parseDate(d.emission), maturity) / 30;
+      vf = 100 * Math.pow(1 + d.tem, months);
+    }
+    return vf / Math.pow(1+tea, days/365);
+  } else if(inst.calcType === 'boncer'){
+    const bond = inst.data;
+    const cerNow = getCER(s);
+    const cerRatio = cerNow / bond.cerBase;
+    const settlement = parseDate(s);
+    const maturity = parseDate(bond.maturity);
+    const residual = bond.residualAt(s);
+    if(bond.couponRate === 0){
+      const days = daysBetween(settlement, maturity);
+      if(days <= 0) return 0;
+      const realDirty = residual / Math.pow(1+tea, days/365);
+      return realDirty * cerRatio;
+    } else {
+      const flows = [];
+      const couponDates = generateSemiannualDates(bond.firstCoupon, bond.maturity, null);
+      const amortMap = {};
+      for(const a of bond.amortSchedule) amortMap[a.date]=(amortMap[a.date]||0)+a.pct;
+      let runRes = residual;
+      const semiRate = Math.pow(1+tea, 0.5) - 1;
+      let pv = 0;
+      for(const ds of couponDates){
+        const dd = parseDate(ds);
+        if(dd <= settlement) continue;
+        const coupon = runRes*(bond.couponRate/100)/bond.frequency;
+        const amort = amortMap[ds]||0;
+        runRes -= amort;
+        const periods30 = days30_360(settlement, dd)/180;
+        pv += (coupon+amort) / Math.pow(1+semiRate, periods30);
+      }
+      return pv * cerRatio;
+    }
+  }
+  return 0;
+}
+
 // =====================================================
 // RENDERING
 // =====================================================
@@ -2526,10 +2603,10 @@ function renderPanel(tableId, panelFilter){
     html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidPx" type="number" step="0.01" value="${inst.bidPx||''}" onclick="event.stopPropagation()"></td>`;
     html += `<td><input class="cell-input" data-ticker="${id}" data-field="askPx" type="number" step="0.01" value="${inst.askPx||''}" onclick="event.stopPropagation()"></td>`;
     html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidTNA" type="number" step="0.01" value="${fv(inst.bidTNA)}" onclick="event.stopPropagation()"></td>`;
-    html += `<td>${fv(inst.askTNA)}</td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="askTNA" type="number" step="0.01" value="${fv(inst.askTNA)}" onclick="event.stopPropagation()"></td>`;
     html += `<td>${fn(inst.duration)}</td>`;
-    html += `<td>${fv(inst.bidTIR)}</td>`;
-    html += `<td>${fv(inst.bidTEM)}</td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidTIR" type="number" step="0.01" value="${fv(inst.bidTIR)}" onclick="event.stopPropagation()"></td>`;
+    html += `<td><input class="cell-input" data-ticker="${id}" data-field="bidTEM" type="number" step="0.01" value="${fv(inst.bidTEM)}" onclick="event.stopPropagation()"></td>`;
     html += `<td><input class="cell-input w40" data-ticker="${id}" data-field="plazo" type="number" step="1" value="${inst.plazo||0}" onclick="event.stopPropagation()"></td>`;
     html += '</tr>';
   }
@@ -2646,6 +2723,37 @@ function onCellChange(e){
         updateRowDOM(inst);
       }
     }
+  } else if(field === 'askTNA'){
+    const tnaInput = parseFloat(e.target.value) / 100;
+    if(!isNaN(tnaInput)){
+      const newPrice = priceFromTNA(inst, tnaInput);
+      if(newPrice > 0){
+        inst.askPx = Math.round(newPrice*100)/100;
+        recalcRow(inst);
+        updateRowDOM(inst);
+      }
+    }
+  } else if(field === 'bidTIR'){
+    const tirInput = parseFloat(e.target.value) / 100;
+    if(!isNaN(tirInput)){
+      const newPrice = priceFromTIR(inst, tirInput);
+      if(newPrice > 0){
+        inst.bidPx = Math.round(newPrice*100)/100;
+        recalcRow(inst);
+        updateRowDOM(inst);
+      }
+    }
+  } else if(field === 'bidTEM'){
+    const temInput = parseFloat(e.target.value) / 100;
+    if(!isNaN(temInput)){
+      const tea = Math.pow(1+temInput, 12) - 1;
+      const newPrice = priceFromTIR(inst, tea);
+      if(newPrice > 0){
+        inst.bidPx = Math.round(newPrice*100)/100;
+        recalcRow(inst);
+        updateRowDOM(inst);
+      }
+    }
   } else if(field === 'plazo'){
     inst.plazo = parseInt(e.target.value) || 0;
     recalcRow(inst);
@@ -2672,12 +2780,17 @@ function updateRowDOM(inst){
   // cell 1 = ticker, cell 2 = Last Px (updated by updateAllLastPx)
   const bidPxInput = row.querySelector('[data-field="bidPx"]');
   if(bidPxInput && document.activeElement !== bidPxInput) bidPxInput.value = inst.bidPx || '';
+  const askPxInput = row.querySelector('[data-field="askPx"]');
+  if(askPxInput && document.activeElement !== askPxInput) askPxInput.value = inst.askPx || '';
   const bidTNAInput = row.querySelector('[data-field="bidTNA"]');
   if(bidTNAInput && document.activeElement !== bidTNAInput) bidTNAInput.value = fv(inst.bidTNA);
-  cells[6].textContent = fv(inst.askTNA);
+  const askTNAInput = row.querySelector('[data-field="askTNA"]');
+  if(askTNAInput && document.activeElement !== askTNAInput) askTNAInput.value = fv(inst.askTNA);
   cells[7].textContent = fn(inst.duration);
-  cells[8].textContent = fv(inst.bidTIR);
-  cells[9].textContent = fv(inst.bidTEM);
+  const bidTIRInput = row.querySelector('[data-field="bidTIR"]');
+  if(bidTIRInput && document.activeElement !== bidTIRInput) bidTIRInput.value = fv(inst.bidTIR);
+  const bidTEMInput = row.querySelector('[data-field="bidTEM"]');
+  if(bidTEMInput && document.activeElement !== bidTEMInput) bidTEMInput.value = fv(inst.bidTEM);
 }
 
 function copyLastToBid(ticker){
