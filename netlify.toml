@@ -1,0 +1,41 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/bonos"
+  to = "/.netlify/functions/bonos"
+  status = 200
+
+[[redirects]]
+  from = "/api/rofex"
+  to = "/.netlify/functions/rofex"
+  status = 200
+
+[[redirects]]
+  from = "/api/dolar-spot"
+  to = "/.netlify/functions/dolar-spot"
+  status = 200
+
+[[redirects]]
+  from = "/api/dolar-rates"
+  to = "/.netlify/functions/dolar-rates"
+  status = 200
+
+[[redirects]]
+  from = "/api/quotes"
+  to = "/.netlify/functions/quotes"
+  status = 200
+
+[[redirects]]
+  from = "/api/chart-data"
+  to = "/.netlify/functions/chart-data"
+  status = 200
+
+[[redirects]]
+  from = "/api/proxy"
+  to = "/.netlify/functions/proxy"
+  status = 200

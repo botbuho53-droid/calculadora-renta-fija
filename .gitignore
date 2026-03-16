@@ -1,0 +1,9 @@
+# Local Netlify folder
+.netlify
+node_modules/
+.claude/
+nul
+stderr.txt
+stdout.txt
+plan.md
+package-lock.json
