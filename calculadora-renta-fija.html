@@ -90,6 +90,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .grid-resizer:hover,.grid-resizer.active{background:var(--accent)}
 .grid-resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:32px;background:var(--text-light);border-radius:1px;opacity:.5}
 .grid-resizer:hover::after,.grid-resizer.active::after{opacity:1;background:#fff}
+.row-resizer{height:6px;cursor:row-resize;background:var(--border);border-radius:3px;transition:background .15s;position:relative;z-index:3}
+.row-resizer:hover,.row-resizer.active{background:var(--accent)}
+.row-resizer::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:2px;width:32px;background:var(--text-light);border-radius:1px;opacity:.5}
+.row-resizer:hover::after,.row-resizer.active::after{opacity:1;background:#fff}
+.sens-grid{display:grid;grid-template-columns:1fr 6px 1fr;grid-template-rows:1fr 6px 1fr;gap:0;height:calc(100vh - 160px)}
+.sens-cell{overflow:auto;min-height:0;min-width:0;display:flex;flex-direction:column}
+.sens-cell-title{font-size:.65rem;font-weight:700;color:var(--primary);padding:3px 6px;background:#fdf6ee;border-bottom:1px solid var(--border);flex-shrink:0}
 .charts-sidebar{display:flex;flex-direction:column;gap:.4rem;overflow-y:auto;max-height:calc(100vh - 140px);padding-top:.2rem}
 .yield-chart-card{background:var(--card);border-radius:6px;box-shadow:var(--shadow);padding:.4rem .5rem;position:relative}
 .yield-chart-card>h4{font-size:.7rem;color:var(--primary);margin:0 0 .2rem;font-weight:700}
@@ -331,6 +338,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <button class="tab-btn" data-panel="ROFEX" onclick="switchTab('ROFEX')" id="tabBtnROFEX">Rofex USD <span class="tab-count" id="countROFEX"></span><span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('ROFEX')" title="Abrir en ventana">&#8599;</span></button>
 <button class="tab-btn" data-panel="FORWARD" onclick="switchTab('FORWARD')" id="tabBtnFORWARD">Tasas Forward<span class="tab-detach-btn" onclick="event.stopPropagation();detachTab('FORWARD')" title="Abrir en ventana">&#8599;</span></button>
 <button class="tab-btn" data-panel="SERIES" onclick="switchTab('SERIES')" id="tabBtnSERIES" style="background:var(--card);color:var(--text);border:1px solid var(--border)">Series</button>
+<button class="tab-btn" data-panel="SENS" onclick="switchTab('SENS')" id="tabBtnSENS" style="background:var(--card);color:var(--text);border:1px solid var(--border)">Sensibilidad</button>
 </div>
 <div class="tab-content">
 <!-- TAB 1: Bonos USD -->
@@ -552,6 +560,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 <div id="chartsFORWARD"></div>
 </div>
+</div>
+</div>
+</div>
+
+<!-- TAB: Sensibilidad -->
+<div class="tab-pane" id="paneSENS">
+<div style="padding:.4rem .6rem;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Curvas:</label>
+<label style="font-size:.68rem;cursor:pointer"><input type="checkbox" class="sensCurveChk" value="Globales" checked onchange="renderSensitivity()"> Globales</label>
+<label style="font-size:.68rem;cursor:pointer"><input type="checkbox" class="sensCurveChk" value="Bonares" checked onchange="renderSensitivity()"> Bonares</label>
+<label style="font-size:.68rem;cursor:pointer"><input type="checkbox" class="sensCurveChk" value="Bopreales" onchange="renderSensitivity()"> Bopreales</label>
+<span style="border-left:1px solid var(--border);height:16px;margin:0 .2rem"></span>
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Horizonte:</label>
+<select id="sensHorizon" onchange="renderSensitivity()" style="font-size:.68rem;padding:3px 6px;border:1px solid var(--border);border-radius:4px">
+<option value="1">1m</option><option value="3" selected>3m</option><option value="6">6m</option><option value="9">9m</option><option value="12">12m</option><option value="18">18m</option><option value="24">24m</option>
+</select>
+<label style="font-size:.7rem;font-weight:700;color:var(--primary)">Reinv TNA:</label>
+<input id="sensReinvRate" type="number" value="0" step="0.5" min="0" max="50" style="width:45px;font-size:.68rem;padding:3px 4px;border:1px solid var(--border);border-radius:4px" onchange="renderSensitivity()">
+<span style="font-size:.65rem;color:var(--text-light)">%</span>
+<button onclick="resetSensScenarios()" style="font-size:.68rem;padding:2px 10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--card)" title="Recalcular escenarios desde curva actual">Reset</button>
+<span style="flex:1"></span>
+<span id="sensInfo" style="font-size:.62rem;color:var(--text-light)"></span>
+</div>
+<div class="sens-grid">
+<!-- Row 1, Col 1: Exit Yields -->
+<div class="sens-cell">
+<div class="sens-cell-title">1. Exit Yields (TIR %)</div>
+<div class="panel-body" id="sensInputs" style="max-height:none;flex:1"></div>
+</div>
+<!-- Row 1, Col resizer -->
+<div class="grid-resizer"></div>
+<!-- Row 1, Col 2: Total Return -->
+<div class="sens-cell">
+<div class="sens-cell-title">2. Total Return por escenario</div>
+<div class="panel-body" id="sensResults" style="max-height:none;flex:1"></div>
+</div>
+<!-- Row resizer (spans all 3 cols) -->
+<div class="row-resizer" style="grid-column:1/-1"></div>
+<!-- Row 2, Col 1: Probabilidades + E[TR] -->
+<div class="sens-cell">
+<div class="sens-cell-title">3. Probabilidad y Retorno Esperado</div>
+<div style="flex:1;overflow:auto;padding:2px">
+<div id="sensProbContainer"></div>
+<div class="panel-body" id="sensExpected" style="max-height:none;margin-top:4px"></div>
+</div>
+</div>
+<!-- Row 2, Col resizer -->
+<div class="grid-resizer"></div>
+<!-- Row 2, Col 2: Gráfico -->
+<div class="sens-cell">
+<div class="sens-cell-title">4. Curvas de Exit Yield</div>
+<div id="sensChartWrap" style="flex:1;position:relative;min-height:150px"><canvas id="sensChartCanvas"></canvas></div>
 </div>
 </div>
 </div>
@@ -3637,6 +3697,7 @@ function switchTab(panel){
   closeDetail();
   if(panel==='FORWARD'){ renderForwardMatrix(); return; }
   if(panel==='SERIES'){ renderSeriesTable(); return; }
+  if(panel==='SENS'){ renderSensitivity(); return; }
   updateYieldCharts(panel);
 }
 
@@ -3675,6 +3736,16 @@ function updateClock(){
       drag = {type:'col', th, startX: e.clientX, startW: th.offsetWidth};
       tr.classList.add('active');
       document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      return;
+    }
+    // 2b. Row resizer (vertical split in sens grid)
+    const rr = e.target.closest('.row-resizer');
+    if(rr){
+      e.preventDefault();
+      drag = {type:'row', grid: rr.parentElement, startY: e.clientY};
+      rr.classList.add('active');
+      document.body.style.cursor = 'row-resize';
       document.body.style.userSelect = 'none';
       return;
     }
@@ -3717,6 +3788,18 @@ function updateClock(){
       const delta = e.clientX - drag.startX;
       const newW = Math.max(30, drag.startW + delta);
       drag.th.style.width = newW + 'px';
+    } else if(drag.type === 'row'){
+      const grid = drag.grid;
+      const rect = grid.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const totalH = rect.height;
+      const topH = Math.max(100, Math.min(y - 3, totalH - 100 - 6));
+      const bottomH = totalH - topH - 6;
+      grid.style.gridTemplateRows = topH + 'px 6px ' + bottomH + 'px';
+      for(const c of grid.querySelectorAll('canvas')){
+        const ch = Chart.getChart(c);
+        if(ch) ch.resize();
+      }
     } else if(drag.type === 'chartH'){
       const delta = e.clientY - drag.startY;
       const minH = 80;
@@ -3746,6 +3829,8 @@ function updateClock(){
       // gridSplit now saved via profile system
     } else if(drag.type === 'col'){
       drag.th.querySelector('.th-resizer')?.classList.remove('active');
+    } else if(drag.type === 'row'){
+      drag.grid.querySelectorAll('.row-resizer').forEach(r=>r.classList.remove('active'));
     } else if(drag.type === 'chartH'){
       drag.handle.classList.remove('active');
       // Persist chart heights
@@ -5062,6 +5147,432 @@ function clearCurrentSeries(){
   saveTimeSeries(key);
   renderSeriesTable();
   if(key==='CER' || key.startsWith('FERIADOS')) recalcAllBoncers();
+}
+
+// =====================================================
+// SENSITIVITY ANALYSIS - Total Return Matrix (3-section, multi-curve)
+// =====================================================
+const SENS_SCENARIOS = [
+  {name:'Esc 1\n(Bull++)', color:'#065f46', lineColor:'#059669', shift:-2.0},
+  {name:'Esc 2\n(Bull+)', color:'#047857', lineColor:'#10b981', shift:-1.0},
+  {name:'Esc 3\n(Bull)', color:'#10b981', lineColor:'#6ee7b7', shift:-0.5},
+  {name:'Esc 4\n(Base)', color:'#6b7280', lineColor:'#9ca3af', shift:0},
+  {name:'Esc 5\n(Bear)', color:'#d97706', lineColor:'#f59e0b', shift:+0.5},
+  {name:'Esc 6\n(Bear+)', color:'#dc2626', lineColor:'#f87171', shift:+1.0},
+  {name:'Esc 7\n(Bear++)', color:'#991b1b', lineColor:'#b91c1c', shift:+2.0}
+];
+let sensExitYields = {};
+let sensChart = null;
+let sensProbs = [5, 10, 15, 40, 15, 10, 5]; // default probabilities for 7 scenarios
+
+function getSelectedSensCurves(){
+  return Array.from(document.querySelectorAll('.sensCurveChk:checked')).map(c=>c.value);
+}
+
+function getSensInstruments(categories){
+  const cats = Array.isArray(categories) ? categories : [categories];
+  return allInstruments.filter(i=>i.panel==='USD' && cats.includes(i.category) && i.bidPx>0 && !isNaN(i.bidTIR) && i.bidTIR<1)
+    .sort((a,b)=>a.dtm-b.dtm);
+}
+
+function initSensScenarios(categories){
+  const cats = Array.isArray(categories) ? categories : [categories];
+  for(const category of cats){
+    const insts = getSensInstruments(category);
+    if(!sensExitYields[category]) sensExitYields[category] = {};
+    for(let s=0; s<7; s++){
+      if(!sensExitYields[category][s]) sensExitYields[category][s] = {};
+      for(const inst of insts){
+        if(sensExitYields[category][s][inst.ticker] === undefined){
+          const baseTIR = inst.bidTIR;
+          if(!isNaN(baseTIR)){
+            sensExitYields[category][s][inst.ticker] = Math.max(0, (baseTIR + SENS_SCENARIOS[s].shift/100)*100);
+          } else {
+            sensExitYields[category][s][inst.ticker] = 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+function resetSensScenarios(){
+  const cats = getSelectedSensCurves();
+  for(const c of cats) sensExitYields[c] = {};
+  renderSensitivity();
+}
+
+function calcTotalReturn(inst, horizonMonths, exitTIR_pct, reinvTNA_pct){
+  const bond = inst.data;
+  const settlement = getSettlement(inst);
+  const settlDate = parseDate(settlement);
+  const horizonDate = new Date(settlDate);
+  horizonDate.setMonth(horizonDate.getMonth() + horizonMonths);
+
+  const {flows} = generateCashflows(bond, settlement);
+  if(flows.length === 0) return NaN;
+
+  const entryDirty = inst.bidPx + (inst._accr || 0);
+  if(entryDirty <= 0) return NaN;
+
+  const reinvRate = (reinvTNA_pct||0)/100;
+
+  let cashReceived = 0;
+  for(const cf of flows){
+    const cfDate = parseDate(cf.date);
+    if(cfDate <= horizonDate){
+      const daysToHorizon = daysBetween(cfDate, horizonDate);
+      const reinvFactor = reinvRate > 0 ? (1 + reinvRate * daysToHorizon/365) : 1;
+      cashReceived += cf.total * reinvFactor;
+    }
+  }
+
+  const remainingFlows = flows.filter(cf => parseDate(cf.date) > horizonDate);
+  if(remainingFlows.length === 0){
+    return (cashReceived / entryDirty - 1) * 100;
+  }
+
+  const exitTEA = exitTIR_pct / 100;
+  const exitSemiRate = Math.pow(1+exitTEA, 0.5) - 1;
+  let exitDirty = 0;
+  for(const cf of remainingFlows){
+    const cfDate = parseDate(cf.date);
+    const periods = days30_360(horizonDate, cfDate) / 180;
+    exitDirty += cf.total / Math.pow(1+exitSemiRate, periods);
+  }
+
+  const totalValue = cashReceived + exitDirty;
+  return (totalValue / entryDirty - 1) * 100;
+}
+
+function sensColorForTR(tr){
+  if(isNaN(tr)) return {bg:'transparent',fg:'var(--text)'};
+  if(tr > 5) return {bg:'#d1fae5',fg:'#065f46'};
+  if(tr > 2) return {bg:'#ecfdf5',fg:'#047857'};
+  if(tr > 0) return {bg:'#f0fdf4',fg:'#166534'};
+  if(tr > -2) return {bg:'#fef3c7',fg:'#92400e'};
+  if(tr > -5) return {bg:'#fee2e2',fg:'#991b1b'};
+  return {bg:'#fca5a5',fg:'#7f1d1d'};
+}
+
+const SENS_CAT_COLORS = {Globales:'#b45309',Bonares:'#065f46',Bopreales:'#1e40af'};
+
+function addSensResizers(container){
+  container.querySelectorAll('th').forEach(th=>{
+    if(!th.querySelector('.th-resizer')){
+      const h = document.createElement('div');
+      h.className = 'th-resizer';
+      th.style.position = 'sticky'; // ensure positioning context
+      th.appendChild(h);
+    }
+  });
+}
+
+const SENS_TBL = 'width:100%;border-collapse:collapse;font-size:.65rem;margin-top:4px;white-space:nowrap;table-layout:fixed';
+
+function renderSensInputTable(categories){
+  const el = document.getElementById('sensInputs');
+  if(!el) return;
+  const allInsts = getSensInstruments(categories);
+  if(allInsts.length===0){ el.innerHTML='<p style="padding:.5rem;color:var(--text-light);font-size:.72rem">No hay instrumentos con precios cargados.</p>'; return; }
+
+  let html = `<table style="${SENS_TBL}">`;
+  html += '<thead><tr>';
+  html += '<th style="width:60px;text-align:left">Ticker</th>';
+  html += '<th style="width:45px;text-align:right">TIR%</th>';
+  html += '<th style="width:38px;text-align:right">Dur</th>';
+  for(let s=0;s<7;s++){
+    html += `<th style="text-align:center;border-left:2px solid rgba(255,255,255,.3)"><div style="font-size:.58rem;white-space:pre-line">${SENS_SCENARIOS[s].name}</div></th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for(const cat of categories){
+    const insts = getSensInstruments(cat);
+    if(insts.length===0) continue;
+    initSensScenarios(cat);
+    const yields = sensExitYields[cat];
+    const catColor = SENS_CAT_COLORS[cat]||'var(--primary)';
+    html += `<tr><td colspan="10" style="padding:3px 6px;font-weight:700;font-size:.64rem;color:#fff;background:${catColor}">${cat}</td></tr>`;
+    for(const inst of insts){
+      const currentTIR = isNaN(inst.bidTIR)?'':(inst.bidTIR*100).toFixed(2);
+      const dur = isNaN(inst.duration)?'':inst.duration.toFixed(2);
+      html += '<tr style="border-bottom:1px solid var(--border)">';
+      html += `<td style="padding:2px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${inst.ticker}</td>`;
+      html += `<td style="padding:2px 4px;text-align:right">${currentTIR}</td>`;
+      html += `<td style="padding:2px 4px;text-align:right">${dur}</td>`;
+      for(let s=0;s<7;s++){
+        const exitY = yields[s][inst.ticker]||0;
+        html += '<td style="padding:1px 2px;text-align:center;border-left:2px solid var(--border)">';
+        html += `<input type="number" value="${exitY.toFixed(2)}" step="0.25" style="width:90%;max-width:56px;font-size:.6rem;text-align:center;border:1px solid #ddd;border-radius:2px;padding:1px 2px;background:#fff" `;
+        html += `onchange="updateSensYield('${cat}',${s},'${inst.ticker}',parseFloat(this.value))" onfocus="this.select()">`;
+        html += '</td>';
+      }
+      html += '</tr>';
+    }
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  addSensResizers(el);
+}
+
+function renderSensResultTable(categories, horizonMonths, reinvTNA){
+  const el = document.getElementById('sensResults');
+  if(!el) return;
+  const allInsts = getSensInstruments(categories);
+  if(allInsts.length===0){ el.innerHTML=''; return; }
+
+  let html = `<table style="${SENS_TBL}">`;
+  html += '<thead><tr>';
+  html += '<th style="width:55px;text-align:left">Ticker</th>';
+  for(let s=0;s<7;s++){
+    html += `<th style="text-align:center;border-left:2px solid rgba(255,255,255,.3);color:${SENS_SCENARIOS[s].lineColor}"><div style="font-size:.56rem;white-space:pre-line">${SENS_SCENARIOS[s].name}</div></th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  let grandSum = Array(7).fill(0), grandCnt = Array(7).fill(0);
+
+  for(const cat of categories){
+    const insts = getSensInstruments(cat);
+    if(insts.length===0) continue;
+    const yields = sensExitYields[cat]||{};
+    const catColor = SENS_CAT_COLORS[cat]||'var(--primary)';
+    html += `<tr><td colspan="8" style="padding:3px 6px;font-weight:700;font-size:.62rem;color:#fff;background:${catColor}">${cat}</td></tr>`;
+
+    let catSum = Array(7).fill(0), catCnt = Array(7).fill(0);
+    for(const inst of insts){
+      html += '<tr style="border-bottom:1px solid var(--border)">';
+      html += `<td style="padding:2px 4px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${inst.ticker}</td>`;
+      for(let s=0;s<7;s++){
+        const exitY = (yields[s]||{})[inst.ticker]||0;
+        const tr = calcTotalReturn(inst, horizonMonths, exitY, reinvTNA);
+        const c = sensColorForTR(tr);
+        const trStr = isNaN(tr)?'—':tr.toFixed(2)+'%';
+        html += `<td style="padding:2px 2px;text-align:center;border-left:2px solid var(--border);background:${c.bg};color:${c.fg};font-weight:600">${trStr}</td>`;
+        if(!isNaN(tr)){catSum[s]+=tr;catCnt[s]++;grandSum[s]+=tr;grandCnt[s]++;}
+      }
+      html += '</tr>';
+    }
+    html += `<tr style="border-top:1.5px solid ${catColor};background:#f8fafc;font-weight:700">`;
+    html += `<td style="padding:2px 4px;color:${catColor};font-size:.6rem">Prom.</td>`;
+    for(let s=0;s<7;s++){
+      const avg = catCnt[s]>0?catSum[s]/catCnt[s]:NaN;
+      const c = sensColorForTR(avg);
+      html += `<td style="padding:2px 2px;text-align:center;border-left:2px solid var(--border);background:${c.bg};color:${c.fg};font-size:.64rem">${isNaN(avg)?'—':avg.toFixed(2)+'%'}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  if(categories.length > 1){
+    html += '<tr style="border-top:2px solid var(--primary);background:#eee;font-weight:700">';
+    html += '<td style="padding:3px 4px;color:var(--primary);font-size:.64rem">TOTAL</td>';
+    for(let s=0;s<7;s++){
+      const avg = grandCnt[s]>0?grandSum[s]/grandCnt[s]:NaN;
+      const c = sensColorForTR(avg);
+      html += `<td style="padding:3px 2px;text-align:center;border-left:2px solid var(--border);background:${c.bg};color:${c.fg};font-size:.68rem">${isNaN(avg)?'—':avg.toFixed(2)+'%'}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  addSensResizers(el);
+}
+
+function renderSensProbAndExpected(categories, horizonMonths, reinvTNA){
+  const probEl = document.getElementById('sensProbContainer');
+  const expEl = document.getElementById('sensExpected');
+  if(!probEl || !expEl) return;
+  const allInsts = getSensInstruments(categories);
+  if(allInsts.length===0){ probEl.innerHTML=''; expEl.innerHTML=''; return; }
+
+  const totalProb = sensProbs.reduce((a,b)=>a+b,0);
+
+  // Probability input row — compact
+  let ph = '<table style="width:100%;border-collapse:collapse;font-size:.62rem;table-layout:fixed">';
+  ph += '<tr>';
+  ph += '<td style="width:40px;padding:2px 4px;font-weight:700;background:#fdf6ee;color:var(--primary);font-size:.58rem">Prob%</td>';
+  for(let s=0;s<7;s++){
+    ph += `<td style="padding:2px 1px;text-align:center;border-left:1px solid var(--border);background:${SENS_SCENARIOS[s].lineColor}15">`;
+    ph += `<input type="number" value="${sensProbs[s]}" step="5" min="0" max="100" style="width:90%;max-width:40px;font-size:.6rem;text-align:center;border:1px solid #ddd;border-radius:2px;padding:1px;background:#fff;font-weight:600" `;
+    ph += `onchange="updateSensProb(${s},parseFloat(this.value))" onfocus="this.select()">`;
+    ph += '</td>';
+  }
+  const sumColor = Math.abs(totalProb-100)<0.01 ? '#065f46' : '#dc2626';
+  ph += `<td style="width:38px;padding:2px;text-align:center;font-weight:700;font-size:.66rem;color:${sumColor};background:#fdf6ee">Σ${totalProb.toFixed(0)}%</td>`;
+  ph += '</tr></table>';
+  probEl.innerHTML = ph;
+
+  // Expected return table — compact: Ticker + E[TR]
+  let html = `<table style="${SENS_TBL}">`;
+  html += '<thead><tr>';
+  html += '<th style="width:55px;text-align:left">Ticker</th>';
+  html += '<th style="text-align:center;font-weight:700">E[TR] Esperado</th>';
+  html += '</tr></thead><tbody>';
+
+  for(const cat of categories){
+    const insts = getSensInstruments(cat);
+    if(insts.length===0) continue;
+    const yields = sensExitYields[cat]||{};
+    const catColor = SENS_CAT_COLORS[cat]||'var(--primary)';
+    html += `<tr><td colspan="2" style="padding:2px 4px;font-weight:700;font-size:.62rem;color:#fff;background:${catColor}">${cat}</td></tr>`;
+
+    let catExpSum=0, catExpCnt=0;
+    for(const inst of insts){
+      let weightedTR = 0;
+      for(let s=0;s<7;s++){
+        const exitY = (yields[s]||{})[inst.ticker]||0;
+        const tr = calcTotalReturn(inst, horizonMonths, exitY, reinvTNA);
+        if(!isNaN(tr)) weightedTR += tr * (sensProbs[s]/100);
+      }
+      const expectedNorm = totalProb>0 ? weightedTR * (100/totalProb) : NaN;
+      const c = sensColorForTR(expectedNorm);
+      html += '<tr style="border-bottom:1px solid var(--border)">';
+      html += `<td style="padding:2px 4px;font-weight:600">${inst.ticker}</td>`;
+      html += `<td style="padding:2px 4px;text-align:center;font-weight:700;font-size:.7rem;background:${c.bg};color:${c.fg}">${isNaN(expectedNorm)?'—':expectedNorm.toFixed(2)+'%'}</td>`;
+      html += '</tr>';
+      if(!isNaN(expectedNorm)){catExpSum+=expectedNorm;catExpCnt++;}
+    }
+    const catAvg = catExpCnt>0?catExpSum/catExpCnt:NaN;
+    const cc = sensColorForTR(catAvg);
+    html += `<tr style="border-top:1.5px solid ${catColor};background:#f8fafc;font-weight:700">`;
+    html += `<td style="padding:2px 4px;color:${catColor};font-size:.6rem">Prom.</td>`;
+    html += `<td style="padding:2px 4px;text-align:center;font-size:.68rem;background:${cc.bg};color:${cc.fg}">${isNaN(catAvg)?'—':catAvg.toFixed(2)+'%'}</td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  expEl.innerHTML = html;
+  addSensResizers(expEl);
+}
+
+function updateSensProb(idx, value){
+  sensProbs[idx] = isNaN(value)?0:Math.max(0,Math.min(100,value));
+  const categories = getSelectedSensCurves();
+  const horizonMonths = parseInt(document.getElementById('sensHorizon').value);
+  const reinvTNA = parseFloat(document.getElementById('sensReinvRate').value) || 0;
+  renderSensProbAndExpected(categories, horizonMonths, reinvTNA);
+}
+
+function renderSensChart(categories){
+  const canvas = document.getElementById('sensChartCanvas');
+  if(!canvas) return;
+  if(sensChart){ sensChart.destroy(); sensChart=null; }
+
+  const allInsts = getSensInstruments(categories);
+  if(allInsts.length===0) return;
+
+  const datasets = [];
+
+  const actualPoints = [];
+  const actualLabels = [];
+  for(const inst of allInsts){
+    if(!isNaN(inst.duration) && inst.duration>0 && !isNaN(inst.bidTIR)){
+      actualPoints.push({x:inst.duration, y:inst.bidTIR*100});
+      actualLabels.push(inst.ticker);
+    }
+  }
+  datasets.push({
+    label:'Actual',
+    data:actualPoints,
+    backgroundColor:'rgba(0,0,0,.7)',
+    borderColor:'rgba(0,0,0,.7)',
+    pointRadius:5,
+    pointStyle:'circle',
+    showLine:false,
+    tickers:actualLabels,
+    order:0
+  });
+
+  for(let s=0;s<7;s++){
+    const pts = [];
+    const labels = [];
+    for(const inst of allInsts){
+      if(!isNaN(inst.duration) && inst.duration>0){
+        const cat = inst.category;
+        const exitY = (sensExitYields[cat]&&sensExitYields[cat][s])?sensExitYields[cat][s][inst.ticker]:undefined;
+        if(exitY!==undefined){
+          pts.push({x:inst.duration, y:exitY});
+          labels.push(inst.ticker);
+        }
+      }
+    }
+    const sorted = pts.map((p,i)=>({...p,label:labels[i]})).sort((a,b)=>a.x-b.x);
+    datasets.push({
+      label:SENS_SCENARIOS[s].name.replace('\n',' '),
+      data:sorted.map(p=>({x:p.x,y:p.y})),
+      borderColor:SENS_SCENARIOS[s].lineColor,
+      backgroundColor:SENS_SCENARIOS[s].lineColor,
+      borderWidth: s===3?3:1.5,
+      borderDash: s===3?[]:[4,3],
+      pointRadius:3,
+      pointHoverRadius:6,
+      showLine:true,
+      tension:0.3,
+      tickers:sorted.map(p=>p.label),
+      order:1
+    });
+  }
+
+  sensChart = new Chart(canvas.getContext('2d'),{
+    type:'scatter',
+    data:{datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:9},boxWidth:14,padding:6}},
+        tooltip:{
+          backgroundColor:'rgba(90,58,26,.9)',
+          titleFont:{size:11,weight:'bold'},
+          bodyFont:{size:10},
+          padding:8,
+          cornerRadius:6,
+          callbacks:{
+            label:function(ctx){
+              const ds=ctx.dataset;
+              const ticker = ds.tickers?ds.tickers[ctx.dataIndex]:'';
+              return `${ds.label}: ${ticker} (dur=${ctx.parsed.x.toFixed(2)}, TIR=${ctx.parsed.y.toFixed(2)}%)`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{title:{display:true,text:'Duración (años)',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
+        y:{title:{display:true,text:'TIR (TEA) %',font:{size:10}},grid:{color:'rgba(0,0,0,.08)'}}
+      }
+    }
+  });
+}
+
+function renderSensitivity(){
+  const categories = getSelectedSensCurves();
+  const horizonMonths = parseInt(document.getElementById('sensHorizon').value);
+  const reinvTNA = parseFloat(document.getElementById('sensReinvRate').value) || 0;
+
+  const allInsts = getSensInstruments(categories);
+  const infoEl = document.getElementById('sensInfo');
+  if(infoEl && allInsts.length>0){
+    const sampleSettl = getSettlement(allInsts[0]);
+    const hDate = new Date(parseDate(sampleSettl));
+    hDate.setMonth(hDate.getMonth() + horizonMonths);
+    infoEl.textContent = `Settle: ${sampleSettl} → Horizonte: ${formatDate(hDate)} (${horizonMonths}m)`;
+  }
+
+  initSensScenarios(categories);
+  renderSensInputTable(categories);
+  renderSensResultTable(categories, horizonMonths, reinvTNA);
+  renderSensProbAndExpected(categories, horizonMonths, reinvTNA);
+  renderSensChart(categories);
+}
+
+function updateSensYield(category, scenario, ticker, value){
+  if(!sensExitYields[category]) sensExitYields[category] = {};
+  if(!sensExitYields[category][scenario]) sensExitYields[category][scenario] = {};
+  sensExitYields[category][scenario][ticker] = value;
+  const categories = getSelectedSensCurves();
+  const horizonMonths = parseInt(document.getElementById('sensHorizon').value);
+  const reinvTNA = parseFloat(document.getElementById('sensReinvRate').value) || 0;
+  renderSensResultTable(categories, horizonMonths, reinvTNA);
+  renderSensProbAndExpected(categories, horizonMonths, reinvTNA);
+  renderSensChart(categories);
 }
 
 const CAT_COLORS = [
