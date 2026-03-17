@@ -2381,6 +2381,38 @@ function buildInstruments(){
 function getCustomInstruments(){
   try{return JSON.parse(localStorage.getItem('rfCustomInstruments')||'[]');}catch(e){return [];}
 }
+// Migration: fix instruments created with base-1000 VF or missing cerBase
+(function migrateCustomInstruments(){
+  try{
+    const ci=JSON.parse(localStorage.getItem('rfCustomInstruments')||'[]');
+    if(!ci.length)return;
+    let changed=false;
+    const profiles=JSON.parse(localStorage.getItem('rfProfiles')||'[]');
+    ci.forEach(c=>{
+      // Fix LECAPs/LELINKs/TAMARs with VF=1000 (should be 100)
+      if(c.calcType==='lecap'&&c.vf===1000){c.vf=100;changed=true;}
+      // Fix BONCERs with frequency=2 that should be 0 (zero-coupon)
+      if(c.calcType==='boncer'&&c.couponRate===0&&c.frequency===2){c.frequency=0;c.firstCoupon=null;changed=true;}
+    });
+    if(changed){
+      localStorage.setItem('rfCustomInstruments',JSON.stringify(ci));
+      // Also fix profile bidPx that were in base 1000
+      profiles.forEach(p=>{
+        if(!p.instruments)return;
+        ci.forEach(c=>{
+          const pi=p.instruments[c.ticker];
+          if(pi&&pi.bidPx>500&&c.calcType==='lecap'){
+            pi.bidPx=Math.round(pi.bidPx/10*100)/100;
+          }
+          if(pi&&pi.bidPx>500&&c.calcType==='boncer'){
+            pi.bidPx=Math.round(pi.bidPx/10*100)/100;
+          }
+        });
+      });
+      localStorage.setItem('rfProfiles',JSON.stringify(profiles));
+    }
+  }catch(e){}
+})();
 function saveCustomInstruments(arr){
   localStorage.setItem('rfCustomInstruments',JSON.stringify(arr));
 }
