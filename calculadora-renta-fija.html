@@ -2795,8 +2795,9 @@ function parseLicitacion(text){
     if(info.calcType==='lecap'){
       inst.vf=100; inst.price=0;
     } else if(info.calcType==='boncer'){
-      inst.cerBase=0; inst.couponRate=0; inst.frequency=2;
-      inst.firstCoupon=matDate; inst.amortSchedule=[{date:matDate,pct:100}];
+      // For new CER instruments, cerBase = CER at settlement date (will be set at import time)
+      inst.cerBase=0; inst.couponRate=0; inst.frequency=0;
+      inst.firstCoupon=null; inst.amortSchedule=[{date:matDate,pct:100}];
     } else if(info.calcType==='bond'){
       inst.couponRate=info.couponRate||0; inst.frequency=2;
       inst.firstCoupon=matDate; inst.issueDate=issueDate;
@@ -3096,7 +3097,15 @@ function importLicitacionInstruments(){
     else inst.panel='ARS';
     // Set fields based on type
     if(calcType==='lecap'){inst.vf=orig.vf||100;inst.price=0;}
-    else if(calcType==='boncer'){inst.couponRate=orig.couponRate||0;inst.cerBase=orig.cerBase||0;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];}
+    else if(calcType==='boncer'){
+      inst.couponRate=orig.couponRate||0;
+      inst.frequency=orig.frequency||0;
+      inst.firstCoupon=orig.firstCoupon||null;
+      inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];
+      // For new CER instruments: cerBase = current CER at settlement
+      if(orig.cerBase>0) inst.cerBase=orig.cerBase;
+      else { try{ const s=getSettlement({plazo:1}); inst.cerBase=getCER(s); }catch(e){ inst.cerBase=0; } }
+    }
     else if(calcType==='bond'){inst.couponRate=orig.couponRate||0;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.issueDate=orig.issueDate||'';inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];}
     if(!inst.meta) inst.meta=orig.meta||{emisor:'Tesoro Nacional',clase:category.split('/')[0],monedaDenom:inst.panel==='USD'?'USD':'ARS',monedaPago:inst.panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:'30/360',tipoCupon:'',isin:'',laminaMin:''};
     // Clean up internal fields before saving
