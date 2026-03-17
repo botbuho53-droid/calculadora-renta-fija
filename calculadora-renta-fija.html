@@ -2389,8 +2389,17 @@ function getCustomInstruments(){
     let changed=false;
     const profiles=JSON.parse(localStorage.getItem('rfProfiles')||'[]');
     ci.forEach(c=>{
-      // Fix LECAPs/LELINKs/TAMARs with VF=1000 (should be 100)
+      // Fix LECAPs/LELINKs/TAMARs with VF=1000 (should be ≈100*(1+TEM)^months)
       if(c.calcType==='lecap'&&c.vf===1000){c.vf=100;changed=true;}
+      // Fix LECAPs with VF=100 that have TEM stored — recalculate correct VF
+      if(c.calcType==='lecap'&&c.vf===100&&c.tem>0&&c.maturity){
+        try{
+          const mat=new Date(c.maturity+'T12:00:00');
+          const issue=c.issueDate?new Date(c.issueDate+'T12:00:00'):new Date();
+          const months=Math.round((mat-issue)/(30.44*86400000));
+          if(months>0){c.vf=Math.round(100*Math.pow(1+c.tem/100,months)*10000)/10000;changed=true;}
+        }catch(e){}
+      }
       // Fix BONCERs with frequency=2 that should be 0 (zero-coupon)
       if(c.calcType==='boncer'&&c.couponRate===0&&c.frequency===2){c.frequency=0;c.firstCoupon=null;changed=true;}
     });
@@ -2825,7 +2834,7 @@ function parseLicitacion(text){
       exists:!!exists, existingInst:exists||null
     };
     if(info.calcType==='lecap'){
-      inst.vf=100; inst.price=0;
+      inst.vf=100; inst.price=0; inst.issueDate=issueDate||'';
     } else if(info.calcType==='boncer'){
       // For new CER instruments, cerBase = CER at settlement date (will be set at import time)
       inst.cerBase=0; inst.couponRate=0; inst.frequency=0;
@@ -3030,12 +3039,32 @@ function importResultados(){
     // Calculate price — PDF prices are base 1000 (per VNO $1000), calculator uses base 100
     let price=0;
     if(r.type==='tem'&&r.tem){
-      // LECAP: price = VF / (1+TEM)^months — use base 100 directly
+      // LECAP: VF = 100*(1+TEM)^months_from_emission_to_maturity
+      // Price at cut = VF / (1+TEM)^months_to_maturity_from_settlement
       const matDate=parseDate(inst.data.maturity);
       const now=new Date();
       const settleDate=new Date(now);settleDate.setDate(settleDate.getDate()+2);
-      const months=Math.round((matDate-settleDate)/(30.44*86400000));
-      price=100/Math.pow(1+r.tem/100,months); // base 100
+      const monthsToMat=Math.round((matDate-settleDate)/(30.44*86400000));
+      price=100/Math.pow(1+r.tem/100,monthsToMat); // base 100
+
+      // Calculate correct VF for LECAPs: VF = 100*(1+TEM)^months_from_emission_to_maturity
+      // Determine issue date from custom instrument or default to settlement date (T+2 from today)
+      const customs=getCustomInstruments();
+      const ci=customs.find(c=>c.ticker===r.ticker);
+      let issueDate=ci&&ci.issueDate?parseDate(ci.issueDate):settleDate;
+      const monthsTotal=Math.round((matDate-issueDate)/(30.44*86400000));
+      const vf=Math.round(100*Math.pow(1+r.tem/100,monthsTotal)*10000)/10000;
+
+      // Update custom instrument VF and TEM
+      if(ci){
+        ci.vf=vf;
+        ci.tem=r.tem;
+        ci.price=Math.round(price*100)/100;
+        if(!ci.issueDate){ci.issueDate=settleDate.toISOString().slice(0,10);}
+        saveCustomInstruments(customs);
+      }
+      // Also update the live instrument data so it takes effect immediately
+      if(inst.data){inst.data.vf=vf;inst.data.tem=r.tem;}
     } else if(r.type==='price'&&r.price){
       price=r.price/10; // base 1000 → base 100
     }
@@ -3043,10 +3072,6 @@ function importResultados(){
       // Update profile
       if(!profile.instruments[r.ticker]) profile.instruments[r.ticker]={bidPx:0,askPx:0,plazo:1};
       profile.instruments[r.ticker].bidPx=Math.round(price*100)/100;
-      // Also update custom instrument if exists
-      const customs=getCustomInstruments();
-      const ci=customs.find(c=>c.ticker===r.ticker);
-      if(ci&&r.type==='tem'){ci.price=Math.round(price*100)/100;saveCustomInstruments(customs);}
       count++;
     }
   });
@@ -3128,7 +3153,8 @@ function importLicitacionInstruments(){
     if(['Globales','Bonares','Bopreales'].includes(category)) inst.panel='USD';
     else inst.panel='ARS';
     // Set fields based on type
-    if(calcType==='lecap'){inst.vf=orig.vf||100;inst.price=0;}
+    if(calcType==='lecap'){inst.vf=orig.vf||100;inst.price=0;inst.issueDate=orig.issueDate||'';}
+
     else if(calcType==='boncer'){
       inst.couponRate=orig.couponRate||0;
       inst.frequency=orig.frequency||0;
