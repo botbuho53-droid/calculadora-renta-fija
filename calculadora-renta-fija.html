@@ -242,6 +242,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="formats">.pdf .docx &mdash; se infieren autom&aacute;ticamente los instrumentos</div>
 </div>
 <input type="file" id="licitacionFile" accept=".pdf,.docx" style="display:none" onchange="handleLicitacionFile(this)">
+<div class="licit-upload-area" onclick="document.getElementById('resultadosFile').click()" style="margin-top:.4rem;background:#f0fdf4;border-color:#059669">
+<div class="icon">&#128202;</div>
+<p>Cargar aviso de resultados (PDF)</p>
+<div class="formats">.pdf &mdash; se extraen precios y tasas de corte</div>
+</div>
+<input type="file" id="resultadosFile" accept=".pdf" style="display:none" onchange="handleResultadosFile(this)">
 <div id="licitStatus" class="licit-status" style="display:none"></div>
 <div id="licitReview" style="display:none"></div>
 </div>
@@ -2671,112 +2677,335 @@ async function handleLicitacionFile(input){
 function parseLicitacion(text){
   const instruments=[];
   const seen=new Set();
-  // Normalize whitespace
   const t=text.replace(/\r\n/g,'\n').replace(/[ \t]+/g,' ');
-  // Extract all dates (DD/MM/YYYY)
-  const dateRx=/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g;
+  const MONTH_MAP={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+  const MONTH_LETTER=['','E','F','M','A','Y','J','L','G','S','O','N','D'];
   function toISO(d,m,y){return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
-  // Ticker patterns with their inferred types
-  const tickerPatterns=[
-    {rx:/\b(S\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS',name:'LECAP'},
-    {rx:/\b(T\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS',name:'BONCAP'},
-    {rx:/\b(TZX[A-Z0-9]{1,3})\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'BONCER'},
-    {rx:/\b(TX[A-Z0-9]{2,4})\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'BONCER'},
-    {rx:/\b(X\d{2}[A-Z]\d)\b/g,type:'boncer',cat:'BONCER/LECER',panel:'ARS',name:'LECER'},
-    {rx:/\b(TT[A-Z]\d{2})\b/g,type:'lecap',cat:'Duales/Tamar',panel:'ARS',name:'Dual'},
-    {rx:/\b(M\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'Duales/Tamar',panel:'ARS',name:'Tamar'},
-    {rx:/\b(D\d{2}[A-Z]\d)\b/g,type:'lecap',cat:'USD Linked',panel:'ARS',name:'USD Linked'},
-    {rx:/\b(TZV[A-Z0-9]{2,3})\b/g,type:'lecap',cat:'USD Linked',panel:'ARS',name:'USD Linked'},
-    {rx:/\b(GD\d{2})\b/g,type:'bond',cat:'Globales',panel:'USD',name:'Global'},
-    {rx:/\b(AL\d{2})\b/g,type:'bond',cat:'Bonares',panel:'USD',name:'Bonar'},
-    {rx:/\b(AE\d{2})\b/g,type:'bond',cat:'Bonares',panel:'USD',name:'Bonar'},
-    {rx:/\b(BP[A-Z0-9]{2,4})\b/g,type:'bond',cat:'Bopreales',panel:'USD',name:'Bopreal'},
-  ];
-  // Keyword-based type override (more specific patterns first)
-  function inferTypeFromContext(ctx){
-    const c=ctx.toLowerCase();
-    if(/boncer|ajust.{0,15}cer|cer\s*\+/i.test(c)) return{type:'boncer',cat:'BONCER/LECER',panel:'ARS'};
-    if(/lecer|letra.{0,15}ajust/i.test(c)) return{type:'boncer',cat:'BONCER/LECER',panel:'ARS'};
-    if(/d[oó]lar.{0,5}link/i.test(c)) return{type:'lecap',cat:'USD Linked',panel:'ARS'};
-    if(/\bdual\b/i.test(c)) return{type:'lecap',cat:'Duales/Tamar',panel:'ARS'};
-    if(/\btamar\b|badlar/i.test(c)) return{type:'lecap',cat:'Duales/Tamar',panel:'ARS'};
-    if(/lecap|letra.{0,15}capitaliz/i.test(c)) return{type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS'};
-    if(/boncap|bono.{0,15}capitaliz/i.test(c)) return{type:'lecap',cat:'LECAPs/BONCAPs',panel:'ARS'};
+  function parseSpanishDate(str){
+    // PDF may split digits: "3 0" instead of "30" — collapse digit spaces first
+    const s=str.replace(/(\d)\s+(\d)/g,'$1$2');
+    // "15 DE MAYO DE 2026" or "15/05/2026" or "30 DE SEPTIEMBRE DE 2026"
+    let m=s.match(/(\d{1,2})\s*(?:DE\s+)?(\w+)\s*(?:DE\s+)?(\d{4})/i);
+    if(m){const mo=MONTH_MAP[m[2].toUpperCase()];if(mo)return toISO(parseInt(m[1]),mo,m[3]);}
+    m=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if(m)return toISO(parseInt(m[1]),parseInt(m[2]),m[3]);
+    return '';
+  }
+  function genTicker(prefix,matDate){
+    if(!matDate)return prefix+'XXX';
+    const d=new Date(matDate+'T12:00:00');
+    const dd=String(d.getDate()).padStart(2,'0');
+    const ml=MONTH_LETTER[d.getMonth()+1]||'X';
+    const y=String(d.getFullYear()).slice(-1);
+    return prefix+dd+ml+y;
+  }
+  // Classify instrument type from full name text
+  // Note: PDF extraction may split words (e.g. "CAPITALIZ ABLE") so we use \s* between word parts
+  function classifyInstrument(name){
+    const n=name.toUpperCase().replace(/\s+/g,' ');
+    if(/CAPITALIZ\s*\w*\s+EN\s+PESOS/.test(n)) return{calcType:'lecap',panel:'ARS',category:'LECAPs/BONCAPs',label:'LECAP',tickerPrefix:'S'};
+    if(/AJUST\s*\w*\s+POR\s+CER\s+A\s+DESCUENTO/.test(n)) return{calcType:'boncer',panel:'ARS',category:'BONCER/LECER',label:'LECER',tickerPrefix:'X'};
+    if(/CERO\s+CUP\s*[OÓ]N\s+CON\s+AJUST\s*\w*\s+POR\s+CER/.test(n)) return{calcType:'boncer',panel:'ARS',category:'BONCER/LECER',label:'BONCER',tickerPrefix:'TZX'};
+    if(/TASA\s+TAMAR/.test(n)&&/LETRA/.test(n)) return{calcType:'lecap',panel:'ARS',category:'Duales/Tamar',label:'LETAMAR',tickerPrefix:'M'};
+    if(/TASA\s+TAMAR/.test(n)&&/BONO/.test(n)) return{calcType:'lecap',panel:'ARS',category:'Duales/Tamar',label:'BONO TAMAR',tickerPrefix:'TM'};
+    if(/VINCULAD\s*\w*\s+AL\s+D[OÓ]LAR/.test(n)) return{calcType:'lecap',panel:'ARS',category:'USD Linked',label:'LELINK',tickerPrefix:'D'};
+    if(/EN\s+DOL\s*\w*\s+ESTADOUNIDENSES\s+(\d+)\s*%/.test(n)){
+      const cm=n.match(/(\d+)\s*%/);
+      return{calcType:'bond',panel:'USD',category:'Bonares',label:'BONAR',tickerPrefix:'AO',couponRate:cm?parseFloat(cm[1]):0};
+    }
+    if(/EN\s+DOL\s*\w*\s+ESTADOUNIDENSES/.test(n)) return{calcType:'bond',panel:'USD',category:'Bonares',label:'BONAR',tickerPrefix:'AO'};
     return null;
   }
-  // Find all tickers in text
-  for(const pat of tickerPatterns){
-    let m;
-    pat.rx.lastIndex=0;
-    while((m=pat.rx.exec(t))!==null){
-      const ticker=m[1].toUpperCase();
-      if(seen.has(ticker))continue;
-      if(allInstruments.find(i=>i.ticker===ticker))continue;
-      seen.add(ticker);
-      // Separate backward context (for type inference) from forward context (for data extraction)
-      const backCtx=t.substring(Math.max(0,m.index-120),m.index);
-      const fwdCtx=t.substring(m.index,Math.min(t.length,m.index+250));
-      // Infer type from backward context only (section headers come before the ticker)
-      const ctxType=inferTypeFromContext(backCtx);
-      const calcType=ctxType?ctxType.type:pat.type;
-      const category=ctxType?ctxType.cat:pat.cat;
-      const panel=ctxType?ctxType.panel:pat.panel;
-      // Extract data from forward context (values come after the ticker)
-      let maturity='';
-      let dm;const dRx=/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g;
-      const afterDates=[];
-      while((dm=dRx.exec(fwdCtx))!==null){
-        const iso=toISO(dm[1],dm[2],dm[3]);
-        if(parseDate(iso)>new Date()) afterDates.push(iso);
-      }
-      if(afterDates.length) maturity=afterDates[0];// first future date after ticker
-      // Find VF — look for numbers near "VN", "VF", "valor" patterns (forward context only)
-      let vf=100;
-      const vfMatch=fwdCtx.match(/(?:VN|VF|valor\s*(?:nominal|final|t[eé]cnico))[^\d]{0,10}([\d.,]+)/i);
-      if(vfMatch) vf=parseFloat(vfMatch[1].replace(/\./g,'').replace(',','.'))||100;
-      // Find coupon rate
-      let couponRate=0;
-      const cupMatch=fwdCtx.match(/(?:tasa|cup[oó]n|inter[eé]s)[^\d]{0,15}([\d.,]+)\s*%/i);
-      if(cupMatch) couponRate=parseFloat(cupMatch[1].replace(',','.'))||0;
-      // Find CER base
-      let cerBase=0;
-      const cerMatch=fwdCtx.match(/(?:cer\s*base|coeficiente\s*cer|cer\s*:)[^\d]{0,10}([\d.,]+)/i);
-      if(cerMatch) cerBase=parseFloat(cerMatch[1].replace(/\./g,'').replace(',','.'))||0;
-      // Find frequency
-      let frequency=2;
-      if(/mensual/i.test(fwdCtx)) frequency=12;
-      else if(/trimestral/i.test(fwdCtx)) frequency=4;
-      else if(/\banual\b/i.test(fwdCtx)) frequency=1;
-      // Build instrument name
-      const baseName=ctxType?'':pat.name;
-      const nameFromCtx=ticker;
-      let instName=baseName?baseName+' '+ticker:category.split('/')[0]+' '+ticker;
-      // Build instrument object
-      const inst={ticker,name:instName,maturity,panel,category,calcType};
-      if(calcType==='lecap'){
-        inst.vf=vf;inst.price=0;
-        if(category==='Duales/Tamar'){
-          const temMatch=ctx.match(/tem[^\d]{0,8}([\d.,]+)/i);
-          inst.tem=temMatch?parseFloat(temMatch[1].replace(',','.')):0;
+  // Main: find lettered/numbered items like "a. LETRA DEL TESORO..." through "k. BONO..."
+  // PDF text may not have newlines; items separated by ; or . Use non-greedy match up to next ; or sentence end.
+  const itemRx=/[a-z][\.\)]\s+((?:LETRA|BONO)\s+DEL\s+TESORO\s+NACIONAL\b[\s\S]*?\([^)]*\))\s*[;\.]/gi;
+  let im;
+  while((im=itemRx.exec(t))!==null){
+    const fullName=im[1].replace(/\s+/g,' ').trim();
+    // Extract maturity date from "VENCIMIENTO dd DE mes DE yyyy"
+    const matMatch=fullName.match(/VENCIMIENTO\s+(.+?)(?:\s*\(|$)/i);
+    let matDate='';
+    if(matMatch) matDate=parseSpanishDate(matMatch[1]);
+    // Extract ticker and new/reopen status from parentheses
+    const parenMatch=fullName.match(/\(([^)]+)\)\s*$/);
+    let ticker='',isNew=false,isReopen=false;
+    if(parenMatch){
+      const inside=parenMatch[1].replace(/\s+/g,' ').trim();
+      if(/^nuev\s*a$/i.test(inside)){
+        isNew=true;
+      } else {
+        const parts=inside.split(/\s*[-–]\s*/);
+        ticker=parts[0].trim().toUpperCase();
+        if(parts.length>1){
+          if(/nuev\s*[oa]/i.test(parts[1])) isNew=true;
+          else if(/reapertura/i.test(parts[1])) isReopen=true;
         }
-      } else if(calcType==='boncer'){
-        inst.cerBase=cerBase||600;
-        inst.couponRate=couponRate;
-        inst.frequency=frequency;
-        inst.firstCoupon=maturity;
-        inst.amortSchedule=[{date:maturity,pct:100}];
-      } else if(calcType==='bond'){
-        inst.couponRate=couponRate;
-        inst.frequency=frequency;
-        inst.firstCoupon=maturity;
-        inst.issueDate='';
-        inst.amortSchedule=[{date:maturity,pct:100}];
       }
-      inst.meta={emisor:'',clase:category.split('/')[0],monedaDenom:panel==='USD'?'USD':'ARS',monedaPago:panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:calcType==='lecap'?'Actual/365':'30/360',tipoCupon:calcType==='lecap'?'Descuento':couponRate?'Fija':'',isin:'',laminaMin:''};
-      instruments.push(inst);
     }
+    const info=classifyInstrument(fullName);
+    if(!info)continue;
+    // Generate ticker for new instruments without one
+    if(!ticker&&isNew){
+      ticker=genTicker(info.tickerPrefix,matDate);
+      // For BONCER/BONO TAMAR with special prefixes, use shorter format
+      if(info.tickerPrefix==='TZX'){
+        const d=new Date(matDate+'T12:00:00');
+        ticker='TZX'+MONTH_LETTER[d.getMonth()+1]+String(d.getFullYear()).slice(-1);
+      }
+      if(info.tickerPrefix==='TM'){
+        const d=new Date(matDate+'T12:00:00');
+        ticker='TM'+MONTH_LETTER[d.getMonth()+1]+String(d.getFullYear()).slice(-2);
+      }
+    }
+    if(!ticker||seen.has(ticker))continue;
+    seen.add(ticker);
+    const exists=allInstruments.find(i=>i.ticker===ticker);
+    // Extract issue date from detail section for new instruments
+    let issueDate='';
+    if(isNew){
+      const detailRx=new RegExp(fullName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+').substring(0,60)+'[\\s\\S]{0,500}?Fecha\\s+de\\s+emisi[oó]n\\s+([\\d\\w\\s]+?)\\n','i');
+      const detMatch=t.match(detailRx);
+      if(detMatch) issueDate=parseSpanishDate(detMatch[1]);
+      // Fallback: look for "16 de marzo de 2026" near "Fecha de emisión"
+      if(!issueDate){
+        const emRx=/Fecha\s+de\s+emisi[oó]n\s+(\d{1,2}\s+de\s+\w+\s+de\s+\d{4})/gi;
+        let emm;
+        while((emm=emRx.exec(t))!==null) issueDate=parseSpanishDate(emm[1]);
+      }
+    }
+    const inst={
+      ticker, name:info.label+' '+ticker, maturity:matDate, panel:info.panel,
+      category:info.category, calcType:info.calcType, isNew, isReopen,
+      exists:!!exists, existingInst:exists||null
+    };
+    if(info.calcType==='lecap'){
+      inst.vf=1000; inst.price=0;
+    } else if(info.calcType==='boncer'){
+      inst.cerBase=0; inst.couponRate=0; inst.frequency=2;
+      inst.firstCoupon=matDate; inst.amortSchedule=[{date:matDate,pct:100}];
+    } else if(info.calcType==='bond'){
+      inst.couponRate=info.couponRate||0; inst.frequency=2;
+      inst.firstCoupon=matDate; inst.issueDate=issueDate;
+      inst.amortSchedule=[{date:matDate,pct:100}];
+    }
+    inst.meta={emisor:'Tesoro Nacional',clase:info.label,monedaDenom:info.panel==='USD'?'USD':'ARS',monedaPago:info.panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:info.calcType==='lecap'?'30/360':'30/360',tipoCupon:info.calcType==='lecap'?'Capitalizable':info.couponRate?'Fija':'Descuento',isin:'',laminaMin:''};
+    instruments.push(inst);
   }
   return instruments;
+}
+// Parse results PDF
+function parseResultados(text){
+  const results=[];
+  const seen=new Set();
+  const t=text.replace(/\r\n/g,'\n').replace(/[ \t]+/g,' ');
+  const MONTH_MAP={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+  const MONTH_LETTER=['','E','F','M','A','Y','J','L','G','S','O','N','D'];
+  function genTicker(prefix,day,monthName,year){
+    const mo=MONTH_MAP[monthName.toUpperCase()]||1;
+    const dd=String(parseInt(day)).padStart(2,'0');
+    return prefix+dd+MONTH_LETTER[mo]+year.slice(-1);
+  }
+  // Parse AR number: "1.018,49" -> 1018.49 or "2.947,50" -> 2947.50
+  function parseAR(s){return parseFloat(s.replace(/\./g,'').replace(',','.'));}
+  // Parse USD number: "1,011.98" -> 1011.98 (US format with comma thousands)
+  function parseUSD(s){return parseFloat(s.replace(/,/g,''));}
+
+  // Strategy: find each instrument line and extract data from the numbers after it
+  // Each line has: instrument name (ticker/nueva) + VNO Ofertado + VNO Adj + VE Adj + Price/TEM + TIREA + VNO Circ
+  // Match instrument blocks ending with (TICKER - reapertura/nueva/nuevo) or just (nueva)
+  const instRx=/((?:LETRA|BONO)\s+DEL\s+TESORO\s+NACIONAL[^()]*?)\(([^)]+)\)/gi;
+  let im;
+  while((im=instRx.exec(t))!==null){
+    const fullName=im[1].trim();
+    const parenContent=im[2].trim();
+    // Parse parentheses content
+    let ticker='',isNew=false;
+    const parts=parenContent.split(/\s*[-–]\s*/);
+    if(/^nueva$/i.test(parenContent)){
+      isNew=true;
+    } else if(/^nuev[oa]$/i.test(parts[parts.length-1])){
+      ticker=parts[0].toUpperCase();isNew=true;
+    } else if(/reapertura/i.test(parts[parts.length-1])){
+      ticker=parts[0].toUpperCase();
+    } else {
+      ticker=parts[0].toUpperCase();
+    }
+    // Classify to generate ticker for new instruments
+    const n=fullName.toUpperCase();
+    let prefix='';
+    if(/CAPITALIZ/.test(n)) prefix='S';
+    else if(/AJUST\w*\s+POR\s+CER\s+A\s+DESCUENTO/.test(n)) prefix='X';
+    else if(/CERO\s+CUP[OÓ]N\s+CON\s+AJUST\w*\s+POR\s+CER/.test(n)) prefix='TZX';
+    else if(/TASA\s+TAMAR/.test(n)&&/LETRA/.test(n)) prefix='M';
+    else if(/TASA\s+TAMAR/.test(n)&&/BONO/.test(n)) prefix='TM';
+    else if(/VINCULAD\w*\s+AL\s+D[OÓ]LAR/.test(n)) prefix='D';
+    else if(/DOL\w*\s+ESTADOUNIDENSES/.test(n)) prefix='AO';
+    // Generate ticker for new instruments without one
+    if(!ticker&&isNew){
+      const matMatch=fullName.match(/VENCIMIENTO\s+(\d{1,2})\s+DE\s+(\w+)\s+(?:DE\s+)?(\d{4})/i);
+      if(matMatch&&prefix){
+        if(prefix==='TZX'){
+          const mo=MONTH_MAP[matMatch[2].toUpperCase()]||1;
+          ticker='TZX'+MONTH_LETTER[mo]+matMatch[3].slice(-1);
+        } else if(prefix==='TM'){
+          const mo=MONTH_MAP[matMatch[2].toUpperCase()]||1;
+          ticker='TM'+MONTH_LETTER[mo]+matMatch[3].slice(-2);
+        } else {
+          ticker=genTicker(prefix,matMatch[1],matMatch[2],matMatch[3]);
+        }
+      }
+    }
+    if(!ticker||seen.has(ticker))continue;
+    seen.add(ticker);
+    // Extract numbers after the parentheses
+    const afterCtx=t.substring(im.index+im[0].length,Math.min(t.length,im.index+im[0].length+400));
+    const isUSD=prefix==='AO'||/DOL\w*\s+ESTADOUNIDENSES/.test(n);
+    // Check for TEM pattern (LECAPs): "2,60% (**)"
+    const temMatch=afterCtx.match(/(\d[,\.]\d{2})\s*%\s*\(\*\*\)/);
+    if(temMatch){
+      const tem=parseAR(temMatch[1]);
+      // Extract TIREA too
+      const tireaMatch=afterCtx.match(/\(\*\*\)\s+(\d{1,3}[,\.]\d{2})%/);
+      results.push({ticker,tem,type:'tem',tirea:tireaMatch?parseAR(tireaMatch[1]):undefined});
+      continue;
+    }
+    // For price-based instruments, find the price of cut
+    // Pattern: $ VNO_ofertado $ VNO_adj $ VE_adj $ PRECIO_CORTE TIREA% $ VNO_circ
+    // For USD: USD VNO_ofertado USD VNO_adj $ VE_adj USD PRECIO TIREA% TNA% USD VNO_circ
+    if(isUSD){
+      // USD format: "USD 1,011.98" or "1,011.98"
+      const usdPriceMatch=afterCtx.match(/USD\s*([\d,]+\.\d{2})/);
+      if(usdPriceMatch){
+        const price=parseUSD(usdPriceMatch[1]);
+        // Find reasonable price (between 50 and 1500 for bonds)
+        const allUSD=[...afterCtx.matchAll(/USD\s*([\d,]+\.?\d*)/g)];
+        let bestPrice=price;
+        for(const m of allUSD){
+          const v=parseUSD(m[1]);
+          if(v>=500&&v<=1500){bestPrice=v;break;}
+        }
+        const tireaMatch=afterCtx.match(/([\d,]+\.\d{2})%/)||afterCtx.match(/(\d{1,2}[,\.]\d{2})\s*%/);
+        results.push({ticker,price:bestPrice,type:'price',tirea:tireaMatch?parseFloat(tireaMatch[1].replace(',','.')):undefined});
+      }
+    } else {
+      // ARS format: "$ 1.018,49"
+      const arsPrices=[...afterCtx.matchAll(/\$\s*([\d.]+,\d{2})/g)];
+      // The price of cut is the one between 50 and 3000 (not millions VNO)
+      let price=0,priceMatchEnd=0;
+      for(const pm of arsPrices){
+        const v=parseAR(pm[1]);
+        if(v>=50&&v<=3000){price=v;priceMatchEnd=pm.index+pm[0].length;break;}
+      }
+      if(price>0){
+        // Extract TIREA: first percentage after price
+        const afterPrice=afterCtx.substring(priceMatchEnd);
+        const tireaMatch=afterPrice.match(/(\d{1,3}[,\.]\d{2})\s*%/);
+        results.push({ticker,price,type:'price',tirea:tireaMatch?parseAR(tireaMatch[1]):undefined});
+      }
+    }
+  }
+  return results;
+}
+async function handleResultadosFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  const statusEl=document.getElementById('licitStatus');
+  statusEl.style.display='';statusEl.className='licit-status';
+  statusEl.textContent='Procesando resultados: '+file.name+'...';
+  try{
+    const buf=await file.arrayBuffer();
+    const text=await extractTextFromPDF(buf);
+    const results=parseResultados(text);
+    if(!results.length){
+      statusEl.textContent='No se detectaron resultados en el documento.';
+      statusEl.className='licit-status error';
+      showLicitacionRawText(text);
+      return;
+    }
+    statusEl.textContent=results.length+' resultado(s) detectado(s) en '+file.name;
+    showResultadosReview(results,text);
+  }catch(e){
+    statusEl.textContent='Error al procesar: '+e.message;
+    statusEl.className='licit-status error';
+  }
+  input.value='';
+}
+function showResultadosReview(results,rawText){
+  const el=document.getElementById('licitReview');
+  el.style.display='';
+  document.getElementById('manualFormSection').style.display='none';
+  let h='<div class="licit-review"><div class="admin-section-title">Resultados de Licitaci&oacute;n</div><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Tipo</th><th>Precio/TEM Corte</th><th>TIREA</th><th>Estado</th></tr></thead><tbody>';
+  results.forEach((r,i)=>{
+    const inst=allInstruments.find(x=>x.ticker===r.ticker);
+    const status=inst?'<span style="color:#059669">Encontrado</span>':'<span style="color:#d97706">No encontrado</span>';
+    const valStr=r.type==='tem'?(r.tem+'% TEM'):('$'+r.price);
+    h+=`<tr data-idx="${i}"><td><input type="checkbox" class="res-chk" checked></td>`;
+    h+=`<td style="font-weight:700">${r.ticker}</td>`;
+    h+=`<td>${r.type==='tem'?'Tasa fija':'Precio'}</td>`;
+    h+=`<td style="font-weight:700;color:var(--primary)">${valStr}</td>`;
+    h+=`<td>${r.tirea?r.tirea+'%':'-'}</td>`;
+    h+=`<td>${status}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  h+='<details style="margin-top:.3rem"><summary style="font-size:.58rem;color:var(--text-light);cursor:pointer">Ver texto extra&iacute;do</summary><div class="licit-raw">'+rawText.substring(0,3000).replace(/</g,'&lt;')+'</div></details>';
+  h+='<div class="licit-actions">';
+  h+='<button class="btn-cancel" onclick="closeLicitReview()">Cancelar</button>';
+  h+='<button class="btn-import" onclick="importResultados()">Aplicar precios</button>';
+  h+='</div>';
+  el.innerHTML=h;
+  el._parsedResults=results;
+}
+function importResultados(){
+  const el=document.getElementById('licitReview');
+  const rows=el.querySelectorAll('tbody tr');
+  const results=el._parsedResults||[];
+  let count=0;
+  const profiles=getProfiles();
+  const activeIdx=profiles.findIndex(p=>p.name===getActiveProfileName());
+  if(activeIdx<0){toast('No hay perfil activo');return;}
+  const profile=profiles[activeIdx];
+  rows.forEach(tr=>{
+    const chk=tr.querySelector('.res-chk');
+    if(chk&&!chk.checked)return;
+    const idx=parseInt(tr.dataset.idx);
+    const r=results[idx];
+    if(!r)return;
+    const inst=allInstruments.find(x=>x.ticker===r.ticker);
+    if(!inst)return;
+    // Calculate price from TEM for LECAPs
+    let price=0;
+    if(r.type==='tem'&&r.tem){
+      // LECAP price = VF / (1+TEM)^months from issue to maturity
+      const matDate=parseDate(inst.data.maturity);
+      const now=new Date();
+      // Settlement is T+2 from today
+      const settleDate=new Date(now);settleDate.setDate(settleDate.getDate()+2);
+      // For new LECAPs: price at emission = 1000 (VF at emission, TEM compounds to maturity)
+      // The bidPx should reflect current market price, not emission price
+      // TEM is capitalized monthly, so price = 1000 / (1+TEM/100)^months_remaining
+      const months=Math.round((matDate-settleDate)/(30.44*86400000));
+      price=1000/Math.pow(1+r.tem/100,months);
+    } else if(r.type==='price'&&r.price){
+      price=r.price;
+    }
+    if(price>0){
+      // Update profile
+      if(!profile.instruments[r.ticker]) profile.instruments[r.ticker]={bidPx:0,askPx:0,plazo:1};
+      profile.instruments[r.ticker].bidPx=Math.round(price*100)/100;
+      // Also update custom instrument if exists
+      const customs=getCustomInstruments();
+      const ci=customs.find(c=>c.ticker===r.ticker);
+      if(ci&&r.type==='tem'){ci.price=Math.round(price*100)/100;saveCustomInstruments(customs);}
+      count++;
+    }
+  });
+  if(count){
+    saveProfiles(profiles);
+    rebuildAndRefresh();
+    loadProfile(getActiveProfileName());
+    toast(count+' precio(s) actualizado(s)');
+  }
+  closeLicitReview();
 }
 function showLicitacionRawText(text){
   const el=document.getElementById('licitReview');
@@ -2788,17 +3017,19 @@ function showLicitacionReview(instruments,rawText){
   el.style.display='';
   document.getElementById('manualFormSection').style.display='none';
   const typeOpts='<option value="lecap">LECAP</option><option value="boncer">BONCER</option><option value="bond">Bono</option>';
-  let h='<div class="licit-review"><table><thead><tr><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Categor&iacute;a</th><th>Vencimiento</th><th>VF/Cup&oacute;n</th><th></th></tr></thead><tbody>';
+  let newCount=instruments.filter(i=>!i.exists).length;
+  let h='<div class="licit-review"><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Categor&iacute;a</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead><tbody>';
   instruments.forEach((inst,i)=>{
-    const valField=inst.calcType==='lecap'?(inst.vf||100):(inst.couponRate||0);
-    const valLabel=inst.calcType==='lecap'?'VF':'Cup%';
+    const status=inst.exists?'<span style="color:#059669;font-weight:700">Ya existe</span>':(inst.isNew?'<span style="color:#d97706;font-weight:700">Nueva</span>':'<span style="color:#2563eb;font-weight:700">Reapertura</span>');
+    const checked=!inst.exists?'checked':'';
     h+=`<tr data-idx="${i}">`;
-    h+=`<td><input value="${inst.ticker}" data-field="ticker" style="width:60px;text-transform:uppercase"></td>`;
-    h+=`<td><input value="${inst.name}" data-field="name" style="width:120px"></td>`;
+    h+=`<td><input type="checkbox" class="licit-chk" ${checked}></td>`;
+    h+=`<td><input value="${inst.ticker}" data-field="ticker" style="width:65px;text-transform:uppercase;font-weight:700"></td>`;
+    h+=`<td><input value="${inst.name}" data-field="name" style="width:110px"></td>`;
     h+=`<td><select data-field="calcType">${typeOpts.replace('value="'+inst.calcType+'"','value="'+inst.calcType+'" selected')}</select></td>`;
     h+=`<td><input value="${inst.category}" data-field="category" style="width:90px"></td>`;
     h+=`<td><input type="date" value="${inst.maturity}" data-field="maturity" style="width:120px"></td>`;
-    h+=`<td><input type="number" step="0.01" value="${valField}" data-field="valField" style="width:60px" title="${valLabel}"></td>`;
+    h+=`<td>${status}</td>`;
     h+=`<td><button class="btn-row-del" onclick="this.closest('tr').remove()" title="Quitar">&times;</button></td>`;
     h+='</tr>';
   });
@@ -2806,10 +3037,9 @@ function showLicitacionReview(instruments,rawText){
   h+='<details style="margin-top:.3rem"><summary style="font-size:.58rem;color:var(--text-light);cursor:pointer">Ver texto extra&iacute;do</summary><div class="licit-raw">'+rawText.substring(0,3000).replace(/</g,'&lt;')+'</div></details>';
   h+='<div class="licit-actions">';
   h+='<button class="btn-cancel" onclick="closeLicitReview()">Cancelar</button>';
-  h+='<button class="btn-import" onclick="importLicitacionInstruments()">Importar '+instruments.length+' instrumento(s)</button>';
+  h+=`<button class="btn-import" onclick="importLicitacionInstruments()">Importar seleccionados (${newCount} nuevos)</button>`;
   h+='</div>';
   el.innerHTML=h;
-  // Store parsed data for import
   el._parsedInstruments=instruments;
 }
 function closeLicitReview(){
@@ -2824,6 +3054,9 @@ function importLicitacionInstruments(){
   const originals=el._parsedInstruments||[];
   let count=0;
   rows.forEach(tr=>{
+    // Skip unchecked rows
+    const chk=tr.querySelector('.licit-chk');
+    if(chk&&!chk.checked)return;
     const idx=parseInt(tr.dataset.idx);
     const orig=originals[idx]||{};
     const ticker=tr.querySelector('[data-field="ticker"]').value.trim().toUpperCase();
@@ -2831,18 +3064,19 @@ function importLicitacionInstruments(){
     const calcType=tr.querySelector('[data-field="calcType"]').value;
     const category=tr.querySelector('[data-field="category"]').value.trim();
     const maturity=tr.querySelector('[data-field="maturity"]').value;
-    const valField=parseFloat(tr.querySelector('[data-field="valField"]').value)||0;
     if(!ticker||!maturity)return;
     // Build instrument using original parsed data as base
-    const inst=Object.assign({},orig,{ticker,name:name||ticker,maturity,category,calcType});
+    const inst={ticker,name:name||ticker,maturity,category,calcType};
     // Infer panel from category
     if(['Globales','Bonares','Bopreales'].includes(category)) inst.panel='USD';
     else inst.panel='ARS';
-    // Set val field based on type
-    if(calcType==='lecap'){inst.vf=valField||100;inst.price=0;delete inst.couponRate;delete inst.cerBase;}
-    else if(calcType==='boncer'){inst.couponRate=valField;inst.cerBase=orig.cerBase||600;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];delete inst.vf;}
-    else if(calcType==='bond'){inst.couponRate=valField;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.issueDate=orig.issueDate||'';inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];delete inst.vf;}
-    if(!inst.meta) inst.meta={emisor:'',clase:category.split('/')[0],monedaDenom:inst.panel==='USD'?'USD':'ARS',monedaPago:inst.panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:calcType==='lecap'?'Actual/365':'30/360',tipoCupon:'',isin:'',laminaMin:''};
+    // Set fields based on type
+    if(calcType==='lecap'){inst.vf=orig.vf||1000;inst.price=0;}
+    else if(calcType==='boncer'){inst.couponRate=orig.couponRate||0;inst.cerBase=orig.cerBase||0;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];}
+    else if(calcType==='bond'){inst.couponRate=orig.couponRate||0;inst.frequency=orig.frequency||2;inst.firstCoupon=orig.firstCoupon||maturity;inst.issueDate=orig.issueDate||'';inst.amortSchedule=orig.amortSchedule||[{date:maturity,pct:100}];}
+    if(!inst.meta) inst.meta=orig.meta||{emisor:'Tesoro Nacional',clase:category.split('/')[0],monedaDenom:inst.panel==='USD'?'USD':'ARS',monedaPago:inst.panel==='USD'?'USD':'ARS',legislacion:'Argentina',convencion:'30/360',tipoCupon:'',isin:'',laminaMin:''};
+    // Clean up internal fields before saving
+    delete inst.isNew;delete inst.isReopen;delete inst.exists;delete inst.existingInst;
     addCustomInstrument(inst);
     count++;
   });
