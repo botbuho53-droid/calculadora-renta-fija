@@ -4439,10 +4439,14 @@ function clearChartHighlights(panel){
 // =====================================================
 let priceMap = {}; // symbol → {last, prevClose, prevLast}
 
+// Ticker aliases: calculator ticker → IOL symbol (when they differ)
+const TICKER_ALIASES={X29Y6:'X2Y6'};
 function getPriceSymbol(inst){
   // USD Globales/Bonares → "D" suffix (cable USD)
   if(inst.panel==='USD' && (inst.category==='Globales'||inst.category==='Bonares'))
     return inst.ticker + 'D';
+  // Check aliases
+  if(TICKER_ALIASES[inst.ticker]) return TICKER_ALIASES[inst.ticker];
   // Everything else → plain symbol
   return inst.ticker;
 }
@@ -4467,7 +4471,7 @@ async function fetchPrices(){
     // Update instruments
     for(const inst of allInstruments){
       const sym = getPriceSymbol(inst);
-      const data = priceMap[sym];
+      const data = priceMap[sym] || priceMap[sym+'C'] || priceMap[inst.ticker] || priceMap[inst.ticker+'C'];
       if(data && data.last > 0){
         inst.lastPx = data.last;
         inst.lastPxPrev = data.prevLast;
