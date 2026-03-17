@@ -200,6 +200,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .amort-table input{width:100%;font-size:.62rem;padding:.15rem .2rem;border:1px solid var(--border);border-radius:3px;font-family:inherit}
 .amort-add-btn{font-size:.6rem;background:none;border:1px dashed var(--border);color:var(--primary);cursor:pointer;padding:.15rem .4rem;border-radius:3px;margin-top:.15rem}
 .amort-add-btn:hover{background:var(--bg)}
+.licit-steps{display:flex;gap:.5rem}
+.licit-step{flex:1;border:1px solid var(--border);border-radius:8px;padding:.5rem;position:relative}
+.licit-step-header{display:flex;align-items:center;gap:.3rem;margin-bottom:.4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+.licit-step-num{display:inline-flex;align-items:center;justify-content:center;width:1.2rem;height:1.2rem;border-radius:50%;background:var(--primary);color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0}
+.licit-step-title{font-size:.65rem;font-weight:700;color:var(--text)}
+.licit-step-desc{font-size:.55rem;color:var(--text-light);margin-left:auto}
 .licit-upload-area{border:2px dashed var(--border);border-radius:6px;padding:.6rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:.5rem}
 .licit-upload-area:hover{border-color:var(--accent);background:rgba(212,132,62,.06)}
 .licit-upload-area .icon{font-size:1.4rem;margin-bottom:.2rem}
@@ -236,18 +242,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="admin-body">
 
 <div class="admin-section">
+<div class="licit-steps">
+<div class="licit-step" id="licitStep1">
+<div class="licit-step-header"><span class="licit-step-num">1</span><span class="licit-step-title">Llamado a licitaci&oacute;n</span><span class="licit-step-desc">Crear instrumentos para simular</span></div>
 <div class="licit-upload-area" onclick="document.getElementById('licitacionFile').click()">
 <div class="icon">&#128196;</div>
-<p>Cargar llamado a licitaci&oacute;n (PDF / Word)</p>
-<div class="formats">.pdf .docx &mdash; se infieren autom&aacute;ticamente los instrumentos</div>
+<p>Cargar PDF del llamado</p>
+<div class="formats">.pdf .docx &mdash; crea los instrumentos nuevos sin precio para que puedas simular</div>
 </div>
 <input type="file" id="licitacionFile" accept=".pdf,.docx" style="display:none" onchange="handleLicitacionFile(this)">
-<div class="licit-upload-area" onclick="document.getElementById('resultadosFile').click()" style="margin-top:.4rem;background:#f0fdf4;border-color:#059669">
+</div>
+<div class="licit-step" id="licitStep2">
+<div class="licit-step-header"><span class="licit-step-num">2</span><span class="licit-step-title">Resultados de licitaci&oacute;n</span><span class="licit-step-desc">Cargar precios/tasas de corte definitivos</span></div>
+<div class="licit-upload-area" onclick="document.getElementById('resultadosFile').click()" style="background:#f0fdf4;border-color:#059669">
 <div class="icon">&#128202;</div>
-<p>Cargar aviso de resultados (PDF)</p>
-<div class="formats">.pdf &mdash; se extraen precios y tasas de corte</div>
+<p>Cargar PDF de resultados</p>
+<div class="formats">.pdf &mdash; actualiza precios de emisi&oacute;n con los valores de corte</div>
 </div>
 <input type="file" id="resultadosFile" accept=".pdf" style="display:none" onchange="handleResultadosFile(this)">
+</div>
+</div>
 <div id="licitStatus" class="licit-status" style="display:none"></div>
 <div id="licitReview" style="display:none"></div>
 </div>
@@ -2934,23 +2948,29 @@ function showResultadosReview(results,rawText){
   const el=document.getElementById('licitReview');
   el.style.display='';
   document.getElementById('manualFormSection').style.display='none';
-  let h='<div class="licit-review"><div class="admin-section-title">Resultados de Licitaci&oacute;n</div><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Tipo</th><th>Precio/TEM Corte</th><th>TIREA</th><th>Estado</th></tr></thead><tbody>';
+  // Get active profile for current prices
+  const profiles=getProfiles();
+  const profile=profiles.find(p=>p.name===getActiveProfileName());
+  let h='<div class="licit-review"><div class="admin-section-title">Paso 2: Aplicar precios de corte definitivos</div><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Tipo</th><th>Precio/TEM Corte</th><th>TIREA</th><th>Precio Actual</th><th>Estado</th></tr></thead><tbody>';
   results.forEach((r,i)=>{
     const inst=allInstruments.find(x=>x.ticker===r.ticker);
     const status=inst?'<span style="color:#059669">Encontrado</span>':'<span style="color:#d97706">No encontrado</span>';
-    const valStr=r.type==='tem'?(r.tem+'% TEM'):('$'+r.price);
+    const valStr=r.type==='tem'?(r.tem+'% TEM'):('$'+r.price.toLocaleString('es-AR',{minimumFractionDigits:2}));
+    const currentPx=profile?.instruments?.[r.ticker]?.bidPx;
+    const currentStr=currentPx>0?('$'+currentPx.toLocaleString('es-AR',{minimumFractionDigits:2})):'<span style="color:#999">sin precio</span>';
     h+=`<tr data-idx="${i}"><td><input type="checkbox" class="res-chk" checked></td>`;
     h+=`<td style="font-weight:700">${r.ticker}</td>`;
     h+=`<td>${r.type==='tem'?'Tasa fija':'Precio'}</td>`;
     h+=`<td style="font-weight:700;color:var(--primary)">${valStr}</td>`;
     h+=`<td>${r.tirea?r.tirea+'%':'-'}</td>`;
+    h+=`<td style="font-size:.58rem">${currentStr}</td>`;
     h+=`<td>${status}</td></tr>`;
   });
   h+='</tbody></table></div>';
   h+='<details style="margin-top:.3rem"><summary style="font-size:.58rem;color:var(--text-light);cursor:pointer">Ver texto extra&iacute;do</summary><div class="licit-raw">'+rawText.substring(0,3000).replace(/</g,'&lt;')+'</div></details>';
   h+='<div class="licit-actions">';
   h+='<button class="btn-cancel" onclick="closeLicitReview()">Cancelar</button>';
-  h+='<button class="btn-import" onclick="importResultados()">Aplicar precios</button>';
+  h+='<button class="btn-import" onclick="importResultados()">Aplicar precios de corte</button>';
   h+='</div>';
   el.innerHTML=h;
   el._parsedResults=results;
@@ -3003,9 +3023,15 @@ function importResultados(){
     saveProfiles(profiles);
     rebuildAndRefresh();
     loadProfile(getActiveProfileName());
-    toast(count+' precio(s) actualizado(s)');
+    closeLicitReview();
+    closeAdminPanel();
+    // Switch to Bonos Pesos tab
+    const arsTab=document.querySelector('[data-panel="ARS"]');
+    if(arsTab) arsTab.click();
+    toast(count+' precio(s) de corte aplicado(s). Los instrumentos ahora reflejan los valores definitivos.',5000);
+  } else {
+    closeLicitReview();
   }
-  closeLicitReview();
 }
 function showLicitacionRawText(text){
   const el=document.getElementById('licitReview');
@@ -3018,7 +3044,7 @@ function showLicitacionReview(instruments,rawText){
   document.getElementById('manualFormSection').style.display='none';
   const typeOpts='<option value="lecap">LECAP</option><option value="boncer">BONCER</option><option value="bond">Bono</option>';
   let newCount=instruments.filter(i=>!i.exists).length;
-  let h='<div class="licit-review"><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Categor&iacute;a</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead><tbody>';
+  let h='<div class="licit-review"><div class="admin-section-title">Paso 1: Crear instrumentos para simular</div><p style="font-size:.58rem;color:var(--text-light);margin:0 0 .3rem">Los instrumentos se crean sin precio. Despu\u00e9s pod\u00e9s editar el Bid Px en la tabla para analizar a qu\u00e9 tasa/precio licitar.</p><table><thead><tr><th style="width:30px"></th><th>Ticker</th><th>Nombre</th><th>Tipo</th><th>Categor&iacute;a</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead><tbody>';
   instruments.forEach((inst,i)=>{
     const status=inst.exists?'<span style="color:#059669;font-weight:700">Ya existe</span>':(inst.isNew?'<span style="color:#d97706;font-weight:700">Nueva</span>':'<span style="color:#2563eb;font-weight:700">Reapertura</span>');
     const checked=!inst.exists?'checked':'';
@@ -3037,7 +3063,7 @@ function showLicitacionReview(instruments,rawText){
   h+='<details style="margin-top:.3rem"><summary style="font-size:.58rem;color:var(--text-light);cursor:pointer">Ver texto extra&iacute;do</summary><div class="licit-raw">'+rawText.substring(0,3000).replace(/</g,'&lt;')+'</div></details>';
   h+='<div class="licit-actions">';
   h+='<button class="btn-cancel" onclick="closeLicitReview()">Cancelar</button>';
-  h+=`<button class="btn-import" onclick="importLicitacionInstruments()">Importar seleccionados (${newCount} nuevos)</button>`;
+  h+=`<button class="btn-import" onclick="importLicitacionInstruments()">Crear ${newCount} instrumento(s) para simular</button>`;
   h+='</div>';
   el.innerHTML=h;
   el._parsedInstruments=instruments;
@@ -3083,9 +3109,15 @@ function importLicitacionInstruments(){
   if(count){
     rebuildAndRefresh();
     renderAdminList();
-    toast(count+' instrumento(s) importado(s)');
+    closeLicitReview();
+    closeAdminPanel();
+    // Switch to Bonos Pesos tab so user sees the new instruments
+    const arsTab=document.querySelector('[data-panel="ARS"]');
+    if(arsTab) arsTab.click();
+    toast(count+' instrumento(s) creado(s). Edit\u00e1 los precios en la tabla para simular tu licitaci\u00f3n.',5000);
+  } else {
+    closeLicitReview();
   }
-  closeLicitReview();
 }
 
 // =====================================================
@@ -3935,10 +3967,10 @@ function switchTab(panel){
   updateYieldCharts(panel);
 }
 
-function toast(msg){
+function toast(msg,duration){
   const t=document.getElementById('toast');
   t.innerHTML=msg;t.style.display='block';
-  setTimeout(()=>t.style.display='none',3000);
+  setTimeout(()=>t.style.display='none',duration||3000);
 }
 
 function updateClock(){
